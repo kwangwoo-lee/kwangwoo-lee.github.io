@@ -1,38 +1,37 @@
-= Coffee Maker iTC
+= HCD iTC
 :showtitle:
 :toc:
 :imagesdir: images
 :icons: font
-:revnumber: 0.1
-:revdate: 2019-08-22
+:revnumber: 1.0
+:revdate: 2022-10-17
 
-:iTC-longname: Coffee Maker
-:iTC-shortname: CM-iTC
-:iTC-email: cm.itc@gmail.com
-:iTC-website: https://coffeemaker.github.io/
-:iTC-GitHub: https://github.com/coffeemaker/repository/
+:iTC-longname: Hardcopy Devices
+:iTC-shortname: HCD-iTC
+:iTC-email: kwangwoo.lee@hp.com
+:iTC-website: https://hcd-itc.github.io/
+:iTC-GitHub: https://github.com/HCD-iTC/
 
 == Introduction
-From the CCDB-established Working Group, the {iTC-longname} ({iTC-shortname} for short) was formed. The {iTC-shortname} consists of members of Certification Bodies, labs, vendors and academia working together to create requirements for biometric security testing.
+From the CCDB-established Working Group, the {iTC-longname} ({iTC-shortname} for short) was formed. The {iTC-shortname} consists of members of Certification Bodies, labs and vendors working together to create requirements for hardcopy devices security testing.
 
-https://www.commoncriteriaportal.org/communities/<page>[Common Criteria Portal {iTC-shortname} Page]
+https://www.commoncriteriaportal.org/communities/hardcopy_devices.cfm[Common Criteria Portal {iTC-shortname} Page]
 
 To join the {iTC-shortname}, please send a message to: {iTC-email}
+
+== Current Status
+The HCD-iTC has published the first Public Release of the collaborative Protection Profile (cPP) and Supporting Document (SD) as of Oct XX, 2022.
 
 == Resources related to the {iTC-longname} iTC
 
 [GUIDANCE]
 ====
-These are example links for resources. Probably important to have a library page that links to all iTC governing docs. For example, Public Review process, IT process, ToR, ESR, could all go on a library page, but things that are likely to be hit up often, maybe should be listed directly. 
+Currently, the cPP and SD are available resources along with the GitHub repository. The iTC is working on updating this site with additional resources. 
 ====
 
-* link:/cPP/cPPv01.html[cPP v0.1]
-* link:/SD/SDv01.html[SD v0.1]
-* link:/library.html[Documentation Library]
-* link:/docs/public-review-process.html[Public Review Process for {iTC-shortname}]
-* link:/public-review/status.html[Public Review Status]
+* link:/cPP/cPP_HCD_V1.0.pdf[cPP v1.0]
+* link:/SD/SD_HCD_V1.0.pdf[SD v1.0]
 * {iTC-GitHub}[{iTC-shortname} GitHub repository]
 
-== Current Status
-Put something here that talks about what is going on right now. This isn't as formal as say the draft status, but something that may say something like "working on the initial draft release of the cPP". The idea would just be to say something about what is going on within the iTC.
+
 
