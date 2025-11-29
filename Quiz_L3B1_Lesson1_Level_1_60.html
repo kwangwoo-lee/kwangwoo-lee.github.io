@@ -6,6 +6,8 @@
     <title>영어 단어 외우기 앱</title>
     <!-- Tailwind CSS CDN 로드 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN 로드 (사운드 생성용) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -155,7 +157,7 @@
         { korean: "~을 피하다", english: "steer clear of" },
         { korean: "갑자기", "english": "suddenly" },
         { korean: "~때까지", english: "until" },
-        { korean: "방법", english: "way" },
+        { korean: "방법", "english": "way" },
     ];
 
     // ============== 앱 상태 관리 ==============
@@ -180,7 +182,63 @@
     const contentArea = document.getElementById('content-area');
     const feedbackModal = document.getElementById('feedback-modal');
     const feedbackCard = document.getElementById('feedback-card');
+    
+    // Tone.js Synth 설정
+    let synth;
+    let tickSynth; // 긴급 사운드용 신디사이저
+    let tickLoop; // 긴급 사운드 반복 루프
+    let isUrgentSoundPlaying = false; // 긴급 사운드 재생 상태 플래그
 
+    // ============== 사운드 로직 ==============
+
+    // Tone.js 초기화 및 사운드 설정
+    function initAudio() {
+        // 1. 정답/오답 사운드용 PolySynth
+        synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: {
+                attack: 0.005,
+                decay: 0.1,
+                sustain: 0.05,
+                release: 0.5,
+            }
+        }).toDestination();
+        
+        // 2. 긴급 재촉 사운드용 MembraneSynth (짧고 톡톡 튀는 소리)
+        tickSynth = new Tone.MembraneSynth({
+            pitchDecay: 0.008,
+            envelope: {
+                attack: 0.001,
+                decay: 0.1,
+                sustain: 0.01,
+                release: 0.05
+            }
+        }).toDestination();
+
+        // 3. 긴급 사운드 루프 설정 (8분음표 간격 = 1초에 4번)
+        tickLoop = new Tone.Loop(time => {
+            tickSynth.triggerAttackRelease("C4", "32n", time, 0.5); // Fast, sharp tick
+        }, "8n");
+        // 루프는 시작 시점에 Tone.Transport와 함께 시작됩니다.
+    }
+    
+    // 정답 사운드 재생 (경쾌한 톤)
+    async function playCorrectSound() {
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
+        // 짧고 경쾌한 상승 아르페지오 (C4, E4, G4)
+        synth.triggerAttackRelease(["C4", "E4", "G4"], "8n");
+    }
+
+    // 오답 또는 시간 초과 사운드 재생 (낮고 불협화음적인 톤)
+    async function playIncorrectSound() {
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
+        // 짧고 불협화음적인 하강 코드 (C#3, C3)
+        synth.triggerAttackRelease(["C#3", "C3"], "16n"); 
+    }
 
     // ============== 타이머 로직 ==============
 
@@ -207,13 +265,15 @@
         
         // 1초마다 시간 업데이트 및 체크
         timerInterval = setInterval(() => {
-            if (timeLeft > 0) {
-                timeLeft--;
+            if (timeLeft >= 0) { // 0초일 때도 마지막 업데이트를 위해 실행
                 updateTimerDisplay();
-            } else {
-                // 시간 초과 처리
-                clearInterval(timerInterval);
-                timeExpired();
+                if (timeLeft > 0) {
+                    timeLeft--;
+                } else {
+                    // 시간 초과 처리
+                    clearInterval(timerInterval);
+                    timeExpired();
+                }
             }
         }, 1000);
     }
@@ -221,6 +281,14 @@
     function stopTimer() {
         clearInterval(timerInterval);
         quizActive = false;
+        
+        // 긴급 사운드 루프 중지
+        if (isUrgentSoundPlaying) {
+            tickLoop.stop();
+            Tone.Transport.stop(); // Tone.Loop를 사용했으므로 Transport도 중지
+            isUrgentSoundPlaying = false;
+        }
+
         // 애니메이션 중단 (타이머 바 초기화)
         const timerBar = document.getElementById('timer-bar');
         if (timerBar) {
@@ -234,11 +302,31 @@
         if (timerDisplay) {
             timerDisplay.textContent = `남은 시간: ${timeLeft}초`;
             
-            // 시간이 5초 이하일 때 텍스트 색상을 변경하여 긴박감 부여
-            if (timeLeft <= 5) {
+            // ============== NEW URGENT SOUND & VISUAL LOGIC ==============
+            if (timeLeft > 0 && timeLeft <= 5) {
+                // 1. 긴급 사운드 시작
+                if (!isUrgentSoundPlaying) {
+                    // AudioContext가 잠겨있을 경우 해제
+                    if (Tone.context.state !== 'running') {
+                        Tone.start(); 
+                    }
+                    tickLoop.start(0);
+                    Tone.Transport.start(); // Tone.Loop를 시작하려면 Transport도 시작해야 함
+                    isUrgentSoundPlaying = true;
+                }
+                
+                // 2. 긴박감 있는 텍스트 색상 적용
                 timerDisplay.classList.remove('text-gray-700');
                 timerDisplay.classList.add('text-incorrect', 'font-bold');
             } else {
+                // 1. 긴급 사운드 중지
+                if (isUrgentSoundPlaying) {
+                    tickLoop.stop();
+                    Tone.Transport.stop(); 
+                    isUrgentSoundPlaying = false;
+                }
+                
+                // 2. 일반 텍스트 색상 적용
                 timerDisplay.classList.remove('text-incorrect', 'font-bold');
                 timerDisplay.classList.add('text-gray-700');
             }
@@ -250,7 +338,8 @@
         if (!currentQuiz) return;
         
         // 퀴즈 응답을 '시간 초과'로 간주하여 오답 처리
-        stopTimer();
+        stopTimer(); // 이 함수 내에서 긴급 사운드도 중지됨
+        playIncorrectSound(); // 오답 사운드 재생
         
         // 오답 기록
         recordIncorrectAnswer(currentQuiz.wordPair);
@@ -284,6 +373,7 @@
     function initApp() {
         console.log("앱 초기화 중...");
         loadScore();
+        initAudio(); // 오디오 초기화
         // 앱 시작 시 퀴즈 사이클 초기화
         resetQuizCycle(); 
         render();
@@ -356,7 +446,7 @@
     }
 
     function render() {
-        // 화면 전환 시 타이머 정지
+        // 화면 전환 시 타이머 정지 (stopTimer에서 긴급 사운드도 중지됨)
         stopTimer(); 
         
         updateScoreDisplay();
@@ -568,6 +658,11 @@
 
     // 퀴즈 시작 및 첫 문제 로드
     function startQuiz() {
+        // Tone.js 오디오 컨텍스트 시작 (사용자 상호작용 필요)
+        if (Tone.context.state !== 'running') {
+             Tone.start().then(() => console.log("AudioContext started."));
+        }
+
         if (VOCAB.length * 2 < quizCycle.length || VOCAB.length < QUIZ_OPTIONS_COUNT) {
             showSimpleMessage('단어 부족', '퀴즈를 시작하려면 최소 4개 이상의 단어가 필요합니다.');
             return;
@@ -601,11 +696,13 @@
         const isCorrect = selectedOption === currentQuiz.answer;
         
         if (isCorrect) {
+            playCorrectSound(); // 정답 사운드 재생
             score += 10; // 점수 부여
             saveScore();
             // 정답일 경우: 피드백 모달 없이 바로 다음 문제로 전환
             advanceToNextQuiz();
         } else {
+            playIncorrectSound(); // 오답 사운드 재생
             // 오답일 경우: 피드백 모달 표시
             recordIncorrectAnswer(currentQuiz.wordPair);
             showFeedback(false);
