@@ -18,16 +18,14 @@
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
     <!-- Main Container -->
-    <div class="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 md:p-10">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 text-center border-b-4 border-indigo-500 pb-2">
+    <div class="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-4 md:p-8">
+        <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 text-center border-b-4 border-indigo-500 pb-2">
             Current World Time
         </h1>
-        <p class="text-center text-gray-600 mb-8">
-            Real-time current time for selected major cities.
-        </p>
+        <!-- Removed introductory text as requested. -->
 
         <!-- Clock List Container -->
-        <div id="clock-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="clock-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Clock cards will be inserted here by JavaScript. -->
         </div>
     </div>
@@ -41,6 +39,7 @@
             { name: "San Francisco", timezone: "America/Los_Angeles", country: "USA" },
             { name: "Boise", timezone: "America/Boise", country: "USA" },
             { name: "New York", timezone: "America/New_York", country: "USA" },
+            { name: "Bangalore", timezone: "Asia/Kolkata", country: "India" }, // Added Bangalore time
         ];
 
         // Function to create a clock card and append it to the container
@@ -49,21 +48,25 @@
 
             // Create HTML structure
             const card = document.createElement('div');
-            card.className = "bg-white p-5 rounded-xl border border-gray-200 hover:shadow-lg transition duration-300";
+            // Reduced padding from p-5 to p-4
+            card.className = "bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg transition duration-300";
 
             // City name and country
             const title = document.createElement('h2');
-            title.className = "text-lg font-semibold text-indigo-700 mb-1 flex justify-between items-center";
-            title.innerHTML = `${city.name} <span class="text-sm text-gray-500 font-normal">(${city.country})</span>`;
+            // Reduced text size from text-lg to text-base
+            title.className = "text-base font-semibold text-indigo-700 mb-1 flex justify-between items-center";
+            title.innerHTML = `${city.name} <span class="text-xs text-gray-500 font-normal">(${city.country})</span>`;
             
             // Element to display the current time (assigned an update ID)
             const timeDisplay = document.createElement('div');
+            // Reduced font size for better density: text-2xl (mobile) / md:text-3xl (desktop)
             timeDisplay.id = `time-${index}`;
-            timeDisplay.className = "text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-2";
+            timeDisplay.className = "text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-1"; 
             timeDisplay.textContent = 'Loading...';
 
             // Element to display the date and timezone abbreviation
             const dateDisplay = document.createElement('p');
+            // Retaining text-sm, but using text-xs for country name in title
             dateDisplay.id = `date-${index}`;
             dateDisplay.className = "text-sm text-gray-500";
             
