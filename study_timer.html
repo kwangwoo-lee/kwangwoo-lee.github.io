@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학습용 타이머 및 시계</title>
+    <style>
+        /* -------------------------- */
+        /* CSS 스타일 (모바일 최적화) */
+        /* -------------------------- */
+        :root {
+            --primary-color: #4CAF50; /* Focus/Primary Color (Green) */
+            --secondary-color: #2196F3; /* Break Color (Blue) */
+            --background-color: #f4f7f6;
+            --text-color: #333;
+            --ring-size: 200px; /* Base size */
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px; /* Mobile: Reduced padding */
+        }
+
+        .container {
+            background: #fff;
+            padding: 20px; /* Mobile: Reduced padding */
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        /* Tabs Styling */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            border-radius: 8px 8px 0 0;
+            overflow: hidden;
+        }
+
+        .tab-button {
+            flex-grow: 1;
+            padding: 15px 0; /* Increased padding for better touch target */
+            cursor: pointer;
+            background: #f0f0f0;
+            border: none;
+            font-size: 16px;
+            color: #777;
+            transition: background-color 0.3s, color 0.3s;
+            font-weight: 500;
+        }
+
+        .tab-button:hover:not(.active) {
+            background-color: #e0e0e0;
+        }
+
+        .tab-button.active {
+            color: white;
+            background-color: var(--primary-color);
+            font-weight: bold;
+            box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-button[data-tab="clock"].active {
+            background-color: #555;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Current Time Mode */
+        #current-time-display {
+            font-size: 4em;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin: 30px 0;
+            color: #444;
+        }
+
+        /* Input and Settings */
+        .settings-group {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            flex-wrap: wrap; /* Ensure items wrap on narrow screens */
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 5px; /* Added margin for spacing on wrap */
+        }
+
+        .setting-item label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .setting-item input[type="number"] {
+            width: 70px;
+            padding: 10px 8px; /* Increased padding for better touch target */
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            transition: border-color 0.3s;
+        }
+        
+        .setting-item input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* Progress Ring (SVG) Styling */
+        .ring-container {
+            position: relative;
+            /* Use min() to ensure responsiveness while capping at base size */
+            width: min(var(--ring-size), 80vw); 
+            height: min(var(--ring-size), 80vw);
+            margin: 20px auto;
+        }
+
+        .timer-svg {
+            transform: rotate(-90deg);
+        }
+
+        .ring-background {
+            stroke: #e6e6e6;
+            stroke-width: 10;
+            fill: none;
+        }
+
+        .ring-progress {
+            stroke: var(--primary-color);
+            stroke-width: 10;
+            fill: none;
+            transition: stroke-dashoffset 0.5s linear;
+            stroke-linecap: round;
+        }
+
+        #timer-display, #countdown-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            font-weight: 700;
+            color: #222;
+        }
+        
+        #countdown-display {
+            font-size: 2.5em; /* Smaller font for H:M:S */
+        }
+
+        #current-mode-label {
+            margin-top: -10px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        /* Button Styling */
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap; /* Ensure buttons wrap on small screens */
+        }
+        
+        .controls button {
+            padding: 15px 30px; /* Increased padding for better touch target */
+            margin: 8px;
+            border: none;
+            border-radius: 30px; /* Slightly more rounded */
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #start-pause-button, #cd-start-pause-button {
+            background-color: var(--primary-color);
+        }
+
+        #start-pause-button:hover, #cd-start-pause-button:hover {
+            background-color: #43A047;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        #start-pause-button.pause, #cd-start-pause-button.pause {
+            background-color: #FFC107;
+        }
+
+        #start-pause-button.pause:hover, #cd-start-pause-button.pause:hover {
+            background-color: #FFB300;
+        }
+
+
+        #reset-button, #cd-reset-button {
+            background-color: #757575; /* Gray for Reset */
+        }
+
+        #reset-button:hover, #cd-reset-button:hover {
+            background-color: #616161;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Sound Setting */
+        .sound-setting {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            font-size: 15px;
+            color: #555;
+        }
+        
+        .sound-setting select {
+            padding: 10px; /* Increased padding for touch target */
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        /* Mobile Optimization: Shrink elements for smaller screens */
+        @media (max-width: 480px) {
+            :root {
+                /* Reduce ring size for very small devices */
+                --ring-size: 180px;
+            }
+            .container {
+                /* Ensure it takes full width with minimal side padding */
+                padding: 15px;
+            }
+            #current-time-display {
+                font-size: 3em;
+                margin: 20px 0;
+            }
+            #timer-display {
+                font-size: 2.5em;
+            }
+            #countdown-display {
+                font-size: 2em;
+            }
+            
+            /* Make setting items narrower to fit on one line better */
+            .setting-item input[type="number"] {
+                width: 50px;
+                font-size: 16px;
+            }
+            
+            /* Reduce button padding slightly if needed, but keep target large */
+            .controls button {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⏰ 학습 타이머</h2>
+
+    <!-- 탭 메뉴 -->
+    <div class="tabs">
+        <button class="tab-button active" data-tab="pomodoro">포모도로</button>
+        <button class="tab-button" data-tab="countdown">카운트다운</button>
+        <button class="tab-button" data-tab="clock">현재 시각</button>
+    </div>
+
+    <!-- -------------------------- -->
+    <!-- 포모도로 모드 -->
+    <!-- -------------------------- -->
+    <div id="pomodoro" class="tab-content active">
+        <!-- 설정 입력 필드 -->
+        <div class="settings-group">
+            <div class="setting-item">
+                <label for="focusTime">집중 시간 (분)</label>
+                <input type="number" id="focusTime" value="25" min="1" data-setting-key="focusTime">
+            </div>
+            <div class="setting-item">
+                <label for="breakTime">휴식 시간 (분)</label>
+                <input type="number" id="breakTime" value="5" min="1" data-setting-key="breakTime">
+            </div>
+            <div class="setting-item">
+                <label for="rounds">라운드 수</label>
+                <input type="number" id="rounds" value="4" min="1" data-setting-key="rounds">
+            </div>
+        </div>
+
+        <!-- 진행율 링 -->
+        <div class="ring-container">
+            <svg class="timer-svg" width="100%" height="100%" viewBox="0 0 220 220">
+                <circle r="100" cx="110" cy="110" class="ring-background"></circle>
+                <circle r="100" cx="110" cy="110" class="ring-progress" id="pomodoro-ring"></circle>
+            </svg>
+            <div id="timer-display">25:00</div>
+        </div>
+
+        <div id="current-mode-label" style="color: var(--primary-color);">집중: 라운드 1/4</div>
+
+        <!-- 제어 버튼 -->
+        <div class="controls">
+            <button id="start-pause-button" onclick="toggleTimer()">시작 (Space)</button>
+            <button id="reset-button" onclick="resetTimer()">초기화 (R)</button>
+        </div>
+    </div>
+
+    <!-- -------------------------- -->
+    <!-- 카운트다운 모드 -->
+    <!-- -------------------------- -->
+    <div id="countdown" class="tab-content">
+        <!-- 설정 입력 필드 -->
+        <div class="settings-group">
+            <div class="setting-item">
+                <label for="cdHour">시</label>
+                <input type="number" id="cdHour" value="0" min="0" max="23" data-setting-key="cdHour">
+            </div>
+            <div class="setting-item">
+                <label for="cdMinute">분</label>
+                <input type="number" id="cdMinute" value="0" min="0" max="59" data-setting-key="cdMinute">
+            </div>
+            <div class="setting-item">
+                <label for="cdSecond">초</label>
+                <input type="number" id="cdSecond" value="0" min="0" max="59" data-setting-key="cdSecond">
+            </div>
+        </div>
+
+        <!-- 진행율 링 -->
+        <div class="ring-container">
+            <svg class="timer-svg" width="100%" height="100%" viewBox="0 0 220 220">
+                <circle r="100" cx="110" cy="110" class="ring-background"></circle>
+                <circle r="100" cx="110" cy="110" class="ring-progress" id="countdown-ring"></circle>
+            </svg>
+            <div id="countdown-display">00:00:00</div>
+        </div>
+
+        <!-- 제어 버튼 -->
+        <div class="controls">
+            <button id="cd-start-pause-button" onclick="toggleCountdown()">시작 (Space)</button>
+            <button id="cd-reset-button" onclick="resetCountdown()">초기화 (R)</button>
+        </div>
+    </div>
+
+    <!-- -------------------------- -->
+    <!-- 현재 시각 모드 -->
+    <!-- -------------------------- -->
+    <div id="clock" class="tab-content">
+        <div id="current-time-display">00:00:00</div>
+    </div>
+
+    <!-- 소리 설정 (모든 모드에 적용) -->
+    <div class="sound-setting">
+        <label for="soundSelect">알림 소리:</label>
+        <select id="soundSelect" data-setting-key="soundType" onchange="saveSettings()">
+            <option value="Beep">Beep 🔔</option>
+            <option value="Ding">Ding 🛎️</option>
+            <option value="None">None 🔇</option>
+        </select>
+    </div>
+
+</div>
+
+<script>
+    /* -------------------------- */
+    /* JavaScript 기능 */
+    /* -------------------------- */
+    const STORAGE_KEY = 'studyTimerSettings';
+    const pomodoroRing = document.getElementById('pomodoro-ring');
+    const countdownRing = document.getElementById('countdown-ring');
+    const circumference = 2 * Math.PI * 100; // Ring circumference for SVG progress
+
+    // State Variables
+    let timerInterval;
+    let currentTab = 'pomodoro';
+    let isRunning = false;
+    let mode = 'focus'; // 'focus' or 'break'
+    let currentRound = 1;
+    let remainingTime = 0; // Total remaining seconds for Pomodoro
+    let totalTime = 0; // Total seconds for the current mode
+
+    let countdownInterval;
+    let cdRemainingTime = 0; // Total remaining seconds for Countdown
+    let cdTotalTime = 0; // Total seconds for Countdown
+    let isCountdownRunning = false;
+    let clockInterval;
+
+    // Audio objects (using free, simple sound effects from the web)
+    const audioBeep = new Audio('https://s3-us-west-2.amazonaws.com/s.cdpn.io/3/success.mp3');
+    const audioDing = new Audio('https://s3-us-west-2.amazonaws.com/s.cdpn.io/3/ding.mp3');
+
+    // Set initial ring properties
+    pomodoroRing.style.strokeDasharray = `${circumference} ${circumference}`;
+    countdownRing.style.strokeDasharray = `${circumference} ${circumference}`;
+
+    // Initial setup on window load
+    window.onload = () => {
+        loadSettings();
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => changeTab(button.dataset.tab));
+        });
+        
+        // Start current clock interval
+        clockInterval = setInterval(updateCurrentClock, 1000);
+
+        // Initialize based on loaded settings
+        if (currentTab === 'pomodoro') resetTimer();
+        if (currentTab === 'countdown') initializeCountdown();
+        updateCurrentClock();
+    };
+
+    // ----------------------------------------------------
+    // 1. Settings Save and Load (LocalStorage)
+    // ----------------------------------------------------
+    function saveSettings() {
+        const settings = {
+            activeTab: currentTab,
+            focusTime: parseInt(document.getElementById('focusTime').value),
+            breakTime: parseInt(document.getElementById('breakTime').value),
+            rounds: parseInt(document.getElementById('rounds').value),
+            cdHour: parseInt(document.getElementById('cdHour').value),
+            cdMinute: parseInt(document.getElementById('cdMinute').value),
+            cdSecond: parseInt(document.getElementById('cdSecond').value),
+            soundType: document.getElementById('soundSelect').value,
+        };
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        } catch (e) {
+            console.error("Local storage error:", e);
+        }
+    }
+
+    function loadSettings() {
+        try {
+            const storedSettings = localStorage.getItem(STORAGE_KEY);
+            if (storedSettings) {
+                const settings = JSON.parse(storedSettings);
+
+                // Load input fields and dropdown
+                document.getElementById('focusTime').value = settings.focusTime || 25;
+                document.getElementById('breakTime').value = settings.breakTime || 5;
+                document.getElementById('rounds').value = settings.rounds || 4;
+                document.getElementById('cdHour').value = settings.cdHour || 0;
+                document.getElementById('cdMinute').value = settings.cdMinute || 0;
+                document.getElementById('cdSecond').value = settings.cdSecond || 0;
+                document.getElementById('soundSelect').value = settings.soundType || 'Beep';
+
+                // Load active tab, but don't reset the timer yet
+                changeTab(settings.activeTab || 'pomodoro', false);
+            }
+        } catch (e) {
+            console.warn("No settings found in local storage or parse error.");
+        }
+    }
+
+    // Attach change listener to all setting inputs
+    document.querySelectorAll('[data-setting-key]').forEach(input => {
+        input.addEventListener('change', () => {
+            saveSettings();
+            // Reset the active timer when settings change
+            if (currentTab === 'pomodoro') resetTimer();
+            if (currentTab === 'countdown') initializeCountdown();
+        });
+    });
+
+    // ----------------------------------------------------
+    // 2. Tab Switching
+    // ----------------------------------------------------
+    function changeTab(tabName, shouldReset = true) {
+        // Update active class on buttons
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.tab-button[data-tab="${tabName}"]`)?.classList.add('active');
+
+        // Update active class on content
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(tabName)?.classList.add('active');
+
+        currentTab = tabName;
+        saveSettings(); // Save the active tab
+
+        // Stop all timers upon tab switch
+        clearInterval(timerInterval);
+        clearInterval(countdownInterval);
+        isRunning = false;
+        isCountdownRunning = false;
+        
+        // Reset button texts
+        document.getElementById('start-pause-button').textContent = '시작 (Space)';
+        document.getElementById('cd-start-pause-button').textContent = '시작 (Space)';
+
+        // Re-initialize the newly selected tab if necessary
+        if (shouldReset) {
+            if (tabName === 'pomodoro') resetTimer();
+            if (tabName === 'countdown') initializeCountdown();
+            // Clock mode is handled by a constant interval
+        }
+    }
+
+    // ----------------------------------------------------
+    // 3. Pomodoro Timer Logic
+    // ----------------------------------------------------
+    function initializePomodoro() {
+        const focusMin = parseInt(document.getElementById('focusTime').value);
+        const breakMin = parseInt(document.getElementById('breakTime').value);
+        const maxRounds = parseInt(document.getElementById('rounds').value);
+
+        // Determine current time and total time
+        if (mode === 'focus') {
+            totalTime = focusMin * 60;
+        } else {
+            totalTime = breakMin * 60;
+        }
+
+        // Handle case where remainingTime was paused (re-initialization only if starting a new session/mode)
+        if (!isRunning) {
+            remainingTime = totalTime;
+        }
+
+        // Color and label update
+        const ringColor = (mode === 'focus') ? 'var(--primary-color)' : 'var(--secondary-color)';
+        const modeText = (mode === 'focus') ? '집중' : '휴식';
+        
+        pomodoroRing.style.stroke = ringColor;
+        document.getElementById('current-mode-label').style.color = ringColor;
+        document.getElementById('current-mode-label').textContent = `${modeText}: 라운드 ${currentRound}/${maxRounds}`;
+        
+        // Ensure ring is set up correctly (e.g., if totalTime was 0 before)
+        pomodoroRing.style.strokeDasharray = `${circumference} ${circumference}`;
+
+        updatePomodoroDisplay();
+    }
+
+    function toggleTimer() {
+        if (currentTab !== 'pomodoro') return;
+
+        isRunning = !isRunning;
+        const button = document.getElementById('start-pause-button');
+
+        if (isRunning) {
+            if (remainingTime <= 0) { // If timer ended, re-initialize
+                 initializePomodoro();
+            }
+            button.textContent = '일시정지 (Space)';
+            button.classList.add('pause');
+            // Start interval
+            timerInterval = setInterval(updatePomodoro, 1000);
+        } else {
+            button.textContent = '재개 (Space)';
+            button.classList.remove('pause');
+            // Pause interval
+            clearInterval(timerInterval);
+        }
+    }
+
+    function updatePomodoro() {
+        if (remainingTime <= 0) {
+            clearInterval(timerInterval);
+            isRunning = false;
+            playSound();
+            
+            // Mode transition logic
+            const maxRounds = parseInt(document.getElementById('rounds').value);
+            
+            if (mode === 'focus') {
+                // Focus -> Break
+                mode = 'break';
+            } else if (mode === 'break') {
+                // Break -> Next Round Focus
+                currentRound++;
+                mode = 'focus';
+            }
+
+            if (currentRound > maxRounds) {
+                // All rounds complete
+                showCustomAlert("🎉 모든 포모도로 라운드를 완료했습니다!");
+                resetTimer();
+                return;
+            }
+            
+            // Auto-start next mode
+            initializePomodoro();
+            toggleTimer(); 
+            return;
+        }
+
+        remainingTime--;
+        updatePomodoroDisplay();
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        mode = 'focus';
+        currentRound = 1;
+        document.getElementById('start-pause-button').textContent = '시작 (Space)';
+        document.getElementById('start-pause-button').classList.remove('pause');
+        initializePomodoro();
+    }
+
+    function updatePomodoroDisplay() {
+        const seconds = remainingTime % 60;
+        const minutes = Math.floor(remainingTime / 60);
+
+        const s = String(seconds).padStart(2, '0');
+        const m = String(minutes).padStart(2, '0');
+
+        // Ring progress calculation
+        const progress = (totalTime - remainingTime) / totalTime;
+        const dashoffset = circumference * (1 - progress);
+        pomodoroRing.style.strokeDashoffset = isNaN(dashoffset) ? circumference : dashoffset; // Handle totalTime=0 case
+
+        document.getElementById('timer-display').textContent = `${m}:${s}`;
+    }
+
+
+    // ----------------------------------------------------
+    // 4. Countdown Timer Logic
+    // ----------------------------------------------------
+    function initializeCountdown() {
+        const h = parseInt(document.getElementById('cdHour').value) || 0;
+        const m = parseInt(document.getElementById('cdMinute').value) || 0;
+        const s = parseInt(document.getElementById('cdSecond').value) || 0;
+        
+        const newTotalTime = (h * 3600) + (m * 60) + s;
+        
+        // If the countdown is currently running, changing settings should reset it
+        if (!isCountdownRunning || newTotalTime !== cdTotalTime) {
+            cdTotalTime = newTotalTime;
+            cdRemainingTime = cdTotalTime;
+        }
+
+        countdownRing.style.stroke = 'var(--primary-color)';
+        countdownRing.style.strokeDasharray = `${circumference} ${circumference}`;
+        updateCountdownDisplay();
+    }
+
+    function toggleCountdown() {
+        if (currentTab !== 'countdown' || cdTotalTime <= 0) return;
+
+        isCountdownRunning = !isCountdownRunning;
+        const button = document.getElementById('cd-start-pause-button');
+
+        if (isCountdownRunning) {
+            button.textContent = '일시정지 (Space)';
+            button.classList.add('pause');
+            countdownInterval = setInterval(updateCountdown, 1000);
+        } else {
+            button.textContent = '재개 (Space)';
+            button.classList.remove('pause');
+            clearInterval(countdownInterval);
+        }
+    }
+
+    function updateCountdown() {
+        if (cdRemainingTime <= 0) {
+            clearInterval(countdownInterval);
+            isCountdownRunning = false;
+            document.getElementById('cd-start-pause-button').textContent = '시작 (Space)';
+            document.getElementById('cd-start-pause-button').classList.remove('pause');
+            playSound();
+            showCustomAlert("⏰ 카운트다운이 종료되었습니다!");
+            resetCountdown();
+            return;
+        }
+
+        cdRemainingTime--;
+        updateCountdownDisplay();
+    }
+
+    function resetCountdown() {
+        clearInterval(countdownInterval);
+        isCountdownRunning = false;
+        document.getElementById('cd-start-pause-button').textContent = '시작 (Space)';
+        document.getElementById('cd-start-pause-button').classList.remove('pause');
+        initializeCountdown();
+    }
+
+    function updateCountdownDisplay() {
+        const seconds = cdRemainingTime % 60;
+        const minutes = Math.floor(cdRemainingTime / 60) % 60;
+        const hours = Math.floor(cdRemainingTime / 3600);
+
+        const s = String(seconds).padStart(2, '0');
+        const m = String(minutes).padStart(2, '0');
+        const h = String(hours).padStart(2, '0');
+
+        // Ring progress calculation
+        const progress = (cdTotalTime - cdRemainingTime) / cdTotalTime;
+        const dashoffset = circumference * (1 - progress);
+        countdownRing.style.strokeDashoffset = isNaN(dashoffset) ? circumference : dashoffset;
+
+        document.getElementById('countdown-display').textContent = `${h}:${m}:${s}`;
+    }
+
+    // ----------------------------------------------------
+    // 5. Current Clock Logic
+    // ----------------------------------------------------
+    function updateCurrentClock() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        
+        // Always update the display element, even if the tab is not active
+        document.getElementById('current-time-display').textContent = `${h}:${m}:${s}`;
+    }
+
+    // ----------------------------------------------------
+    // 6. Utility Functions (Sound, Custom Alert)
+    // ----------------------------------------------------
+    
+    // Play notification sound
+    function playSound() {
+        const soundType = document.getElementById('soundSelect').value;
+        if (soundType === 'Beep') {
+            audioBeep.currentTime = 0; // Rewind for immediate playback
+            audioBeep.play().catch(e => console.error("Audio playback failed:", e));
+        } else if (soundType === 'Ding') {
+            audioDing.currentTime = 0;
+            audioDing.play().catch(e => console.error("Audio playback failed:", e));
+        }
+    }
+    
+    // Custom Alert Function (Replaces standard alert())
+    function showCustomAlert(message) {
+        // Simple inline message box creation
+        const existingAlert = document.getElementById('custom-alert');
+        if (existingAlert) existingAlert.remove();
+
+        const alertBox = document.createElement('div');
+        alertBox.id = 'custom-alert';
+        alertBox.textContent = message;
+        
+        alertBox.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #f44336;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(-50px);
+        `;
+        
+        document.body.appendChild(alertBox);
+
+        // Show animation
+        setTimeout(() => {
+            alertBox.style.opacity = '1';
+            alertBox.style.transform = 'translateY(0)';
+        }, 10);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            alertBox.style.opacity = '0';
+            alertBox.style.transform = 'translateY(-50px)';
+            setTimeout(() => alertBox.remove(), 500);
+        }, 3000);
+    }
+
+    // ----------------------------------------------------
+    // 7. Keyboard Shortcuts (Space, R)
+    // ----------------------------------------------------
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault(); // Prevent spacebar scrolling
+            if (currentTab === 'pomodoro') {
+                toggleTimer();
+            } else if (currentTab === 'countdown') {
+                toggleCountdown();
+            }
+        } else if (e.code === 'KeyR') {
+            if (currentTab === 'pomodoro') {
+                resetTimer();
+            } else if (currentTab === 'countdown') {
+                resetCountdown();
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
