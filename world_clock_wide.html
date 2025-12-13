@@ -32,14 +32,16 @@
 
     <script>
         // List of cities to display current time (with English names and IANA timezone IDs)
+        // Order: India/Seoul/London/Barcelona/Tel Aviv/San Francisco/Boise/New York
         const cities = [
+            { name: "Bangalore", timezone: "Asia/Kolkata", country: "India" },
             { name: "Seoul", timezone: "Asia/Seoul", country: "South Korea" },
-            { name: "Barcelona", timezone: "Europe/Madrid", country: "Spain" },
             { name: "London", timezone: "Europe/London", country: "UK" },
-            { name: "San Francisco", timezone: "America/Los_Angeles", country: "USA" },
+            { name: "Barcelona", timezone: "Europe/Madrid", country: "Spain" },
+            { name: "Tel Aviv", timezone: "Asia/Jerusalem", country: "Israel" },
+            //{ name: "San Francisco", timezone: "America/Los_Angeles", country: "USA" },
             { name: "Boise", timezone: "America/Boise", country: "USA" },
             { name: "New York", timezone: "America/New_York", country: "USA" },
-            { name: "Bangalore", timezone: "Asia/Kolkata", country: "India" }, // Added Bangalore time
         ];
 
         // Function to create a clock card and append it to the container
@@ -101,7 +103,7 @@
                     year: 'numeric',
                     month: 'short', // Jan, Feb...
                     day: 'numeric',
-                    timeZoneName: 'short', // KST, CEST, PST, EST etc.
+                    timeZoneName: 'short', // KST, CEST, IST, etc.
                     timeZone: item.timezone
                 };
 
