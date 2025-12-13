@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current World Time - World Clock</title>
+    <!-- Load Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Set Inter font for styling -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 md:p-10">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 text-center border-b-4 border-indigo-500 pb-2">
+            Current World Time
+        </h1>
+        <p class="text-center text-gray-600 mb-8">
+            Real-time current time for selected major cities.
+        </p>
+
+        <!-- Clock List Container -->
+        <div id="clock-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Clock cards will be inserted here by JavaScript. -->
+        </div>
+    </div>
+
+    <script>
+        // List of cities to display current time (with English names and IANA timezone IDs)
+        const cities = [
+            { name: "Seoul", timezone: "Asia/Seoul", country: "South Korea" },
+            { name: "Barcelona", timezone: "Europe/Madrid", country: "Spain" },
+            { name: "London", timezone: "Europe/London", country: "UK" },
+            { name: "San Francisco", timezone: "America/Los_Angeles", country: "USA" },
+            { name: "Boise", timezone: "America/Boise", country: "USA" },
+            { name: "New York", timezone: "America/New_York", country: "USA" },
+        ];
+
+        // Function to create a clock card and append it to the container
+        function createClockCard(city, index) {
+            const container = document.getElementById('clock-container');
+
+            // Create HTML structure
+            const card = document.createElement('div');
+            card.className = "bg-white p-5 rounded-xl border border-gray-200 hover:shadow-lg transition duration-300";
+
+            // City name and country
+            const title = document.createElement('h2');
+            title.className = "text-lg font-semibold text-indigo-700 mb-1 flex justify-between items-center";
+            title.innerHTML = `${city.name} <span class="text-sm text-gray-500 font-normal">(${city.country})</span>`;
+            
+            // Element to display the current time (assigned an update ID)
+            const timeDisplay = document.createElement('div');
+            timeDisplay.id = `time-${index}`;
+            timeDisplay.className = "text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-2";
+            timeDisplay.textContent = 'Loading...';
+
+            // Element to display the date and timezone abbreviation
+            const dateDisplay = document.createElement('p');
+            dateDisplay.id = `date-${index}`;
+            dateDisplay.className = "text-sm text-gray-500";
+            
+            card.appendChild(title);
+            card.appendChild(timeDisplay);
+            card.appendChild(dateDisplay);
+            container.appendChild(card);
+
+            return { timeDisplay, dateDisplay, timezone: city.timezone };
+        }
+
+        // Create all clock cards
+        const clockElements = cities.map((city, index) => createClockCard(city, index));
+
+        // Function to update the time every second
+        function updateAllClocks() {
+            const now = new Date();
+
+            clockElements.forEach(item => {
+                // Time format options: 2-digit hour/minute/second, 12-hour format
+                const timeOptions = {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true, // Use 12-hour format with AM/PM for en-US
+                    timeZone: item.timezone
+                };
+                
+                // Date format options: weekday, month, day, year, timezone abbreviation
+                const dateOptions = {
+                    weekday: 'short', // Mon, Tue, Wed...
+                    year: 'numeric',
+                    month: 'short', // Jan, Feb...
+                    day: 'numeric',
+                    timeZoneName: 'short', // KST, CEST, PST, EST etc.
+                    timeZone: item.timezone
+                };
+
+                // Update time using en-US locale
+                const timeFormatter = new Intl.DateTimeFormat('en-US', timeOptions);
+                item.timeDisplay.textContent = timeFormatter.format(now);
+
+                // Update date and timezone abbreviation using en-US locale
+                const dateFormatter = new Intl.DateTimeFormat('en-US', dateOptions);
+                item.dateDisplay.textContent = dateFormatter.format(now);
+            });
+        }
+
+        // Set up initial clock update on page load and repeat every second
+        window.onload = function() {
+            updateAllClocks(); // Initial update
+            setInterval(updateAllClocks, 1000); // Repeat every 1 second
+        }
+
+    </script>
+</body>
+</html>
