@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Printing Word Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .timer-warning { color: #ef4444; transform: scale(1.1); transition: all 0.3s ease; }
+        .word-chip { transition: all 0.2s ease; cursor: pointer; }
+        .word-chip:active { transform: scale(0.95); }
+        .disabled-chip { opacity: 0.3; cursor: not-allowed; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+<div id="app" class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-500">
+    <!-- Header -->
+    <div class="bg-indigo-600 p-6 text-white text-center relative">
+        <div id="level-badge" class="absolute top-4 left-4 bg-indigo-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            Level 1
+        </div>
+        <div id="timer-display" class="absolute top-4 right-4 bg-indigo-800 text-xs font-bold px-3 py-1 rounded-full hidden">
+            ⏱ <span id="time-left">15</span>s
+        </div>
+        <h1 class="text-xl font-bold mt-2">3D 프린팅 영단어 챌린지</h1>
+        <div class="mt-4 flex justify-between items-center bg-indigo-700 rounded-xl px-4 py-2">
+            <div class="flex flex-col items-start">
+                <span class="text-indigo-200 text-[10px] font-bold uppercase">Attempts</span>
+                <span id="attempt-count" class="text-lg font-bold">1</span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span class="text-indigo-200 text-[10px] font-bold uppercase">Score</span>
+                <span id="score" class="text-2xl font-black text-white">0</span>
+            </div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-indigo-800 h-1 mt-4 rounded-full overflow-hidden">
+            <div id="progress" class="bg-yellow-400 h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Game Content -->
+    <div id="game-container" class="p-8">
+        <div class="text-center mb-8">
+            <p id="korean-hint" class="text-gray-500 text-sm mb-1 font-medium italic"></p>
+            <h2 id="english-context" class="text-xl font-bold text-slate-800 leading-tight"></h2>
+        </div>
+
+        <!-- Level 1: Options -->
+        <div id="options-grid" class="grid grid-cols-1 gap-3"></div>
+
+        <!-- Level 2 & 4: Input -->
+        <div id="input-area" class="hidden">
+            <div class="relative">
+                <textarea id="answer-input" 
+                       class="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-center text-lg font-bold focus:border-indigo-500 focus:outline-none transition-colors"
+                       placeholder="정답을 입력하세요"
+                       rows="2"></textarea>
+            </div>
+            <button id="submit-btn" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-100 transition-all active:scale-95">
+                정답 제출
+            </button>
+        </div>
+
+        <!-- Level 3: Word Scramble -->
+        <div id="scramble-area" class="hidden">
+            <div id="scramble-display" class="min-h-[60px] p-4 bg-slate-50 rounded-2xl mb-4 flex flex-wrap gap-2 border-2 border-dashed border-slate-200"></div>
+            <div id="word-pool" class="flex flex-wrap gap-2 justify-center"></div>
+            <button id="reset-scramble" class="w-full mt-4 text-slate-400 text-sm font-bold py-2">지우기</button>
+            <button id="submit-scramble" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl transition-all">
+                확인
+            </button>
+        </div>
+
+        <!-- Feedback -->
+        <div id="feedback" class="mt-6 text-center h-8 font-bold text-lg opacity-0 transition-opacity duration-300"></div>
+    </div>
+
+    <!-- Final Result Overlay -->
+    <div id="result-overlay" class="hidden fixed inset-0 bg-slate-900/90 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm text-center">
+            <div class="text-6xl mb-4">🏆</div>
+            <h2 class="text-3xl font-black text-slate-800 mb-2">미션 완료!</h2>
+            
+            <div class="space-y-3 mb-6">
+                <div class="bg-slate-100 rounded-2xl py-3 px-4 flex justify-between items-center">
+                    <span class="text-slate-500 text-xs uppercase font-bold">Total Score</span>
+                    <span id="final-score-display" class="text-2xl font-black text-indigo-600">0</span>
+                </div>
+                <div class="bg-slate-100 rounded-2xl py-3 px-4 flex justify-between items-center">
+                    <span class="text-slate-500 text-xs uppercase font-bold">Total Time</span>
+                    <span id="final-time-display" class="text-xl font-bold text-slate-700">0s</span>
+                </div>
+            </div>
+
+            <button onclick="window.location.reload()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-indigo-700 transition-colors">
+                다시 도전하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        if (type === 'correct') {
+            const freqs = [523.25, 659.25, 783.99]; 
+            freqs.forEach((f, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(f, now + (i * 0.1));
+                gain.gain.setValueAtTime(0, now + (i * 0.1));
+                gain.gain.linearRampToValueAtTime(0.1, now + (i * 0.1) + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.1) + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + (i * 0.1));
+                osc.stop(now + (i * 0.1) + 0.4);
+            });
+        } else if (type === 'wrong') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.exponentialRampToValueAtTime(110, now + 0.4);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } else if (type === 'tick') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(880, now);
+            gain.gain.setValueAtTime(0.03, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        } else if (type === 'finish') {
+            const melody = [523.25, 523.25, 523.25, 659.25, 783.99, 1046.50];
+            const durations = [0.1, 0.1, 0.1, 0.2, 0.2, 0.6];
+            let startTime = now;
+            melody.forEach((f, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = (i === melody.length - 1) ? 'sine' : 'triangle';
+                osc.frequency.setValueAtTime(f, startTime);
+                gain.gain.setValueAtTime(0.1, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + durations[i]);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + durations[i]);
+                startTime += durations[i] * 1.2;
+            });
+        }
+    }
+
+    const dataL12 = [
+        { eng: "_______ inside it", kor: "그 안에서 모습을 드러낸다", ans: "appears" },
+        { eng: "will be more _______", kor: "더 흔해질 것이다", ans: "common" },
+        { eng: "custom _______", kor: "맞춤 부품들", ans: "parts" },
+        { eng: "begins with a _______", kor: "도안으로 시작된다", ans: "design" },
+        { eng: "in a _______", kor: "공장에서", ans: "factory" },
+        { eng: "a variety of _______", kor: "다양한 산업들", ans: "industries" },
+        { eng: "making such _______", kor: "그런 제품들을 만드는 것", ans: "items" },
+        { eng: "_______ by layer", kor: "층층이", ans: "layer" },
+        { eng: "_______ plastic or metal", kor: "플라스틱 또는 금속을 녹인다", ans: "melts" },
+        { eng: "metal _______", kor: "금속 제품들", ans: "items" },
+        { eng: "_______ of new products", kor: "신제품 모형들", ans: "models" },
+        { eng: "meet our _______", kor: "우리의 필요를 충족시킨다", ans: "needs" },
+        { eng: "a 3D _______", kor: "3D 프린터", ans: "printer" },
+        { eng: "the _______ begins", kor: "그 과정이 시작된다", ans: "process" },
+        { eng: "_______ special equipment", kor: "특수한 장비가 필요했다", ans: "required" }
+    ];
+
+    const dataL34 = [
+        { eng: "In the past, making such items required special equipment, so it was (only done in a factory)", kor: "과거에는 그런 제품들을 만드는 데 특별한 장비가 필요해서 공장에서만 이뤄졌다.", ans: "only done in a factory" },
+        { eng: "It acts as (a guide for the printer).", kor: "그것은 프린터의 안내서 역할을 한다.", ans: "a guide for the printer" },
+        { eng: "The object (slowly takes shape), layer by layer.", kor: "그 물체는 층층이 쌓이며 천천히 모양을 갖추게 된다.", ans: "slowly takes shape" },
+        { eng: "These days, 3D printers are being used in (a variety of industries).", kor: "오늘날 3D 프린터는 다양한 산업들에서 사용되고 있다.", ans: "a variety of industries" },
+        { eng: "This is faster and easier than (making models by hand).", kor: "이것은 손으로 모형들을 만드는 것보다 더 빠르고 쉽다.", ans: "making models by hand" }
+    ];
+
+    let score = 0;
+    let currentIdx = 0;
+    let level = 1;
+    let timer = null;
+    let timeLeft = 0;
+    let selectedWords = [];
+    let attempts = 0;
+    let currentQPotentialScore = 10;
+    
+    // 전체 시간 측정용 변수
+    let gameStartTime = null;
+
+    const badge = document.getElementById('level-badge');
+    const scoreEl = document.getElementById('score');
+    const attemptEl = document.getElementById('attempt-count');
+    const korHint = document.getElementById('korean-hint');
+    const engCtx = document.getElementById('english-context');
+    const optionsGrid = document.getElementById('options-grid');
+    const inputArea = document.getElementById('input-area');
+    const answerInput = document.getElementById('answer-input');
+    const scrambleArea = document.getElementById('scramble-area');
+    const feedback = document.getElementById('feedback');
+    const progress = document.getElementById('progress');
+    const app = document.getElementById('app');
+    const timerDisplay = document.getElementById('timer-display');
+    const timeLeftEl = document.getElementById('time-left');
+
+    function initGame() {
+        gameStartTime = Date.now(); // 게임 시작 시점 기록
+        renderQuestion();
+    }
+
+    function startTimer() {
+        clearInterval(timer);
+        if (level === 4) { timerDisplay.classList.add('hidden'); return; }
+        
+        let initial = 15;
+        let warn = 5;
+        if (level === 2) { initial = 30; warn = 10; }
+        if (level === 3) { initial = 45; warn = 10; }
+        
+        timeLeft = initial;
+        timerDisplay.classList.remove('hidden');
+        updateTimerUI();
+
+        timer = setInterval(() => {
+            timeLeft--;
+            updateTimerUI();
+            if (timeLeft <= warn && timeLeft > 0) {
+                playSound('tick');
+                timeLeftEl.classList.add('timer-warning');
+            }
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                checkAnswer(""); 
+            }
+        }, 1000);
+    }
+
+    function updateTimerUI() { timeLeftEl.innerText = timeLeft; }
+
+    function renderQuestion() {
+        const isL12 = (level <= 2);
+        const currentData = isL12 ? dataL12 : dataL34;
+        const item = currentData[currentIdx];
+        
+        attempts = 0;
+        currentQPotentialScore = 10;
+        updateAttemptUI();
+
+        korHint.innerText = item.kor;
+        let displayEng = item.eng;
+        
+        if (level === 1 || level === 2) {
+            displayEng = item.eng;
+        } else if (level === 3 || level === 4) {
+            displayEng = item.eng.replace(`(${item.ans})`, "_______");
+        }
+        
+        engCtx.innerHTML = displayEng.replace("_______", `<span class="text-indigo-600 underline decoration-indigo-200 decoration-4">_______</span>`);
+        
+        updateProgress();
+        startTimer();
+
+        optionsGrid.classList.add('hidden');
+        inputArea.classList.add('hidden');
+        scrambleArea.classList.add('hidden');
+        
+        if (level === 1) {
+            badge.innerText = "Level 1";
+            badge.className = "absolute top-4 left-4 bg-indigo-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider";
+            optionsGrid.classList.remove('hidden');
+            generateOptions(item.ans, dataL12);
+        } else if (level === 2) {
+            badge.innerText = "Level 2";
+            badge.className = "absolute top-4 left-4 bg-orange-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider";
+            inputArea.classList.remove('hidden');
+            answerInput.value = "";
+            answerInput.focus();
+        } else if (level === 3) {
+            badge.innerText = "Level 3";
+            badge.className = "absolute top-4 left-4 bg-purple-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider";
+            scrambleArea.classList.remove('hidden');
+            setupScramble(item.ans);
+        } else if (level === 4) {
+            badge.innerText = "Level 4";
+            badge.className = "absolute top-4 left-4 bg-red-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider";
+            inputArea.classList.remove('hidden');
+            answerInput.value = "";
+            answerInput.focus();
+        }
+    }
+
+    function updateAttemptUI() {
+        attemptEl.innerText = attempts + 1;
+    }
+
+    function generateOptions(correct, pool) {
+        optionsGrid.innerHTML = "";
+        let opts = [correct];
+        while(opts.length < 4) {
+            let r = pool[Math.floor(Math.random() * pool.length)].ans;
+            if(!opts.includes(r)) opts.push(r);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = "option-btn w-full text-left px-6 py-4 rounded-2xl border-2 border-slate-100 hover:border-indigo-500 hover:bg-indigo-50 font-bold text-slate-700 transition-all active:scale-95";
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt);
+            optionsGrid.appendChild(btn);
+        });
+    }
+
+    function setupScramble(answer) {
+        selectedWords = [];
+        const display = document.getElementById('scramble-display');
+        const pool = document.getElementById('word-pool');
+        display.innerHTML = "";
+        pool.innerHTML = "";
+        
+        const words = answer.split(' ');
+        const shuffled = [...words].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach((w, i) => {
+            const span = document.createElement('button');
+            span.className = "word-chip bg-white border-2 border-slate-200 px-4 py-2 rounded-xl font-bold text-slate-700 shadow-sm hover:border-indigo-400";
+            span.innerText = w;
+            span.onclick = () => {
+                if(!span.classList.contains('disabled-chip')) {
+                    selectedWords.push(w);
+                    span.classList.add('disabled-chip');
+                    updateScrambleDisplay();
+                }
+            };
+            pool.appendChild(span);
+        });
+    }
+
+    function updateScrambleDisplay() {
+        const display = document.getElementById('scramble-display');
+        display.innerHTML = selectedWords.map(w => `<span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg font-bold">${w}</span>`).join(' ');
+    }
+
+    document.getElementById('reset-scramble').onclick = () => {
+        const currentData = dataL34[currentIdx];
+        setupScramble(currentData.ans);
+    };
+
+    document.getElementById('submit-scramble').onclick = () => {
+        checkAnswer(selectedWords.join(' '));
+    };
+
+    function checkAnswer(userAnswer) {
+        clearInterval(timer);
+        const currentData = (level <= 2) ? dataL12 : dataL34;
+        const correct = currentData[currentIdx].ans;
+        const isCorrect = userAnswer.toLowerCase().trim() === correct.toLowerCase();
+
+        attempts++;
+
+        if (isCorrect) {
+            handleSuccess();
+        } else {
+            handleFailure(correct, userAnswer);
+        }
+    }
+
+    function handleSuccess() {
+        let earned = 10;
+        if (level === 1 && attempts === 2) earned = 5;
+        if (level === 2 || level === 4) earned = currentQPotentialScore;
+        if (level === 3 && attempts === 2) earned = 5;
+        
+        score += earned;
+        scoreEl.innerText = score;
+        playSound('correct');
+        showFeedback(`정답! +${earned}`, "text-emerald-500");
+        setTimeout(nextQuestion, 1000);
+    }
+
+    function handleFailure(correct, userAnswer) {
+        playSound('wrong');
+        app.classList.add('shake');
+        setTimeout(() => app.classList.remove('shake'), 500);
+
+        if (level === 1) {
+            if (attempts === 1) {
+                showFeedback("틀렸습니다! 한 번 더 기회!", "text-orange-500");
+                updateAttemptUI();
+                startTimer();
+            } else {
+                showFeedback(`오답! 정답: ${correct}`, "text-red-500");
+                setTimeout(nextQuestion, 1500);
+            }
+        } 
+        else if (level === 2) {
+            currentQPotentialScore--;
+            if (attempts < 3) {
+                showFeedback(`틀렸습니다! (남은 기회: ${3-attempts})`, "text-orange-500");
+                updateAttemptUI();
+                if (userAnswer !== "") answerInput.focus();
+                startTimer();
+            } else {
+                showFeedback(`오답! 정답: ${correct}`, "text-red-500");
+                setTimeout(nextQuestion, 2000);
+            }
+        }
+        else if (level === 3) {
+            if (attempts === 1) {
+                showFeedback("다시 배열해보세요! (5점 기회)", "text-orange-500");
+                document.getElementById('reset-scramble').click();
+                updateAttemptUI();
+                startTimer();
+            } else {
+                showFeedback(`오답! 정답: ${correct}`, "text-red-500");
+                setTimeout(nextQuestion, 2000);
+            }
+        }
+        else if (level === 4) {
+            currentQPotentialScore = Math.max(0, currentQPotentialScore - 1);
+            showFeedback(`정확히 입력할 때까지 계속! (-1점)`, "text-red-400");
+            updateAttemptUI();
+            startTimer();
+        }
+    }
+
+    function showFeedback(text, colorClass) {
+        feedback.innerText = text;
+        feedback.className = `mt-6 text-center h-8 font-bold text-lg opacity-100 transition-opacity ${colorClass}`;
+        setTimeout(() => { if(feedback.innerText === text) feedback.style.opacity = "0"; }, 1500);
+    }
+
+    function updateProgress() {
+        const total = (level <= 2) ? dataL12.length : dataL34.length;
+        progress.style.width = `${(currentIdx / total) * 100}%`;
+    }
+
+    function nextQuestion() {
+        const currentTotal = (level <= 2) ? dataL12.length : dataL34.length;
+        currentIdx++;
+        
+        if (currentIdx >= currentTotal) {
+            currentIdx = 0;
+            level++;
+            if (level > 4) {
+                playSound('finish');
+                showFinalResult();
+            } else {
+                alert(`Level ${level} 진입! 새로운 규칙이 적용됩니다.`);
+                renderQuestion();
+            }
+        } else {
+            renderQuestion();
+        }
+    }
+
+    function formatTime(ms) {
+        const seconds = Math.floor(ms / 1000);
+        if (seconds < 60) return `${seconds}s`;
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+    }
+
+    function showFinalResult() {
+        const gameEndTime = Date.now();
+        const totalTimeElapsed = gameEndTime - gameStartTime;
+        
+        document.getElementById('final-score-display').innerText = score;
+        document.getElementById('final-time-display').innerText = formatTime(totalTimeElapsed);
+        document.getElementById('result-overlay').classList.remove('hidden');
+    }
+
+    document.getElementById('submit-btn').onclick = () => {
+        const val = answerInput.value;
+        if(val.trim() === "") return;
+        checkAnswer(val);
+    };
+    answerInput.onkeyup = (e) => { if(e.key === "Enter") document.getElementById('submit-btn').click(); };
+
+    initGame();
+</script>
+</body>
+</html>
