@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영어 단어 외우기 앱</title>
+    <!-- Tailwind CSS CDN 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN 로드 (사운드 생성용) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4F46E5', // Indigo
+                        'secondary': '#10B981', // Emerald
+                        'accent': '#FBBF24', // Amber
+                        'correct': '#10B981', // Green
+                        'incorrect': '#EF4444', // Red
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 8px;
+        }
+        #app-container {
+            width: 100%;
+            max-width: 480px; 
+            height: 98vh; 
+            max-height: 900px;
+            background-color: white;
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .btn-large {
+            padding: 0.6rem 1rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            border-radius: 0.75rem;
+            transition: transform 0.1s;
+        }
+        .btn-large:active {
+            transform: scale(0.98);
+        }
+        .question-text {
+            font-size: 2.2rem;
+            line-height: 1.2;
+        }
+        #timer-bar {
+            height: 6px;
+            background-color: #EF4444;
+            transition: width linear;
+        }
+        #content-area {
+            flex-grow: 1;
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .option-button-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-evenly;
+            gap: 0.5rem;
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header class="p-4 bg-primary text-white shadow-lg flex justify-between items-center rounded-t-[2rem]">
+        <h1 class="text-xl font-black tracking-wider">단어 마스터 🚀</h1>
+        <div id="score-display" class="bg-white text-primary px-3 py-1 rounded-full font-bold text-base shadow-md">
+            점수: 0점
+        </div>
+    </header>
+
+    <main id="content-area">
+        <!-- JS 렌더링 영역 -->
+    </main>
+
+    <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50 transition-opacity duration-300">
+        <div id="feedback-card" class="bg-white p-6 rounded-2xl w-full max-sm text-center shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+            <!-- 모달 콘텐츠 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'vocabularyAppScore_custom_v3';
+    const QUIZ_OPTIONS_COUNT = 4;
+    const TIME_LIMIT_SECONDS = 15;
+
+    // 요청하신 30개 단어 목록으로 교체되었습니다.
+    const VOCAB = [
+        { korean: "~쯤, 대략/~에 대해", english: "about" },
+        { korean: "나이", english: "age" },
+        { korean: "외치다", english: "call out" },
+        { korean: "주의 깊게", english: "carefully" },
+        { korean: "바꾸다", english: "change" },
+        { korean: "완전히", english: "completely" },
+        { korean: "가리다", english: "cover" },
+        { korean: "사라지다", english: "disappear" },
+        { korean: "설명하다", english: "explain" },
+        { korean: "(어떤 일이) 일어나다", english: "happen" },
+        { korean: "가망 없는/절망적인", english: "hopeless" },
+        { korean: "불가능한", english: "impossible" },
+        { korean: "떠나다", english: "leave" },
+        { korean: "월식", english: "lunar eclipse" },
+        { korean: "일/문제", english: "matter" },
+        { korean: "손짓하다", english: "motion" },
+        { korean: "일부", english: "part" },
+        { korean: "드물게", english: "rarely" },
+        { korean: "알아차리다", english: "realize" },
+        { korean: "과제", english: "report" },
+        { korean: "돌아오다", english: "return" },
+        { korean: "과학", english: "science" },
+        { korean: "그림자", english: "shadow" },
+        { korean: "모양", english: "shape" },
+        { korean: "줄어들다", english: "shrink" },
+        { korean: "딱 소리를 내다", english: "snap" },
+        { korean: "빤히 쳐다보다", english: "stare" },
+        { korean: "망원경", english: "telescope" },
+        { korean: "끔찍한", english: "terrible" },
+        { korean: "위층으로", english: "upstairs" }
+    ];
+
+    let score = 0;
+    let currentScreen = 'home';
+    let currentQuiz = null;
+    let quizActive = false; 
+    let timerInterval = null;
+    let timeLeft = TIME_LIMIT_SECONDS;
+    let quizCycle = []; 
+    let currentQuizIndex = -1; 
+    let incorrectlyAnswered = []; 
+
+    const scoreDisplay = document.getElementById('score-display');
+    const contentArea = document.getElementById('content-area');
+    const feedbackModal = document.getElementById('feedback-modal');
+    const feedbackCard = document.getElementById('feedback-card');
+    
+    let synth, tickSynth, tickLoop;
+    let isUrgentSoundPlaying = false;
+
+    function initAudio() {
+        synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.5 }
+        }).toDestination();
+        
+        tickSynth = new Tone.MembraneSynth({
+            pitchDecay: 0.008,
+            envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.05 }
+        }).toDestination();
+
+        tickLoop = new Tone.Loop(time => {
+            tickSynth.triggerAttackRelease("C4", "32n", time, 0.5);
+        }, "8n");
+    }
+    
+    async function playCorrectSound() {
+        if (Tone.context.state !== 'running') await Tone.start();
+        synth.triggerAttackRelease(["C4", "E4", "G4"], "8n");
+    }
+
+    async function playIncorrectSound() {
+        if (Tone.context.state !== 'running') await Tone.start();
+        synth.triggerAttackRelease(["C#3", "C3"], "16n"); 
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeLeft = TIME_LIMIT_SECONDS;
+        quizActive = true; 
+        
+        const timerBar = document.getElementById('timer-bar');
+        if (timerBar) {
+            timerBar.style.width = '100%';
+            timerBar.style.transitionDuration = `${TIME_LIMIT_SECONDS}s`;
+            void timerBar.offsetWidth; 
+            setTimeout(() => { timerBar.style.width = '0%'; }, 10);
+        }
+        
+        timerInterval = setInterval(() => {
+            if (timeLeft >= 0) {
+                updateTimerDisplay();
+                if (timeLeft > 0) {
+                    timeLeft--;
+                } else {
+                    clearInterval(timerInterval);
+                    timeExpired();
+                }
+            }
+        }, 1000);
+    }
+    
+    function stopTimer() {
+        clearInterval(timerInterval);
+        quizActive = false;
+        if (isUrgentSoundPlaying) {
+            tickLoop.stop();
+            Tone.Transport.stop();
+            isUrgentSoundPlaying = false;
+        }
+        const timerBar = document.getElementById('timer-bar');
+        if (timerBar) {
+            timerBar.style.transitionDuration = '0s';
+            timerBar.style.width = '100%';
+        }
+    }
+    
+    function updateTimerDisplay() {
+        const timerDisplay = document.getElementById('timer-display');
+        if (timerDisplay) {
+            timerDisplay.textContent = `남은 시간: ${timeLeft}초`;
+            if (timeLeft > 0 && timeLeft <= 5) {
+                if (!isUrgentSoundPlaying) {
+                    if (Tone.context.state !== 'running') Tone.start();
+                    tickLoop.start(0);
+                    Tone.Transport.start();
+                    isUrgentSoundPlaying = true;
+                }
+                timerDisplay.classList.add('text-incorrect', 'font-bold');
+            } else {
+                if (isUrgentSoundPlaying) {
+                    tickLoop.stop();
+                    Tone.Transport.stop();
+                    isUrgentSoundPlaying = false;
+                }
+                timerDisplay.classList.remove('text-incorrect', 'font-bold');
+            }
+        }
+    }
+    
+    function timeExpired() {
+        if (!currentQuiz) return;
+        stopTimer();
+        playIncorrectSound();
+        recordIncorrectAnswer(currentQuiz.wordPair);
+        showFeedback(false, true); 
+    }
+
+    function recordIncorrectAnswer(wordPair) {
+        const isAlreadyLogged = incorrectlyAnswered.some(pair => 
+            pair.english === wordPair.english && pair.korean === wordPair.korean
+        );
+        if (!isAlreadyLogged) incorrectlyAnswered.push(wordPair);
+    }
+
+    function loadScore() {
+        const savedScore = localStorage.getItem(STORAGE_KEY);
+        if (savedScore !== null) score = parseInt(savedScore, 10);
+    }
+    
+    function saveScore() {
+        localStorage.setItem(STORAGE_KEY, score.toString());
+    }
+
+    function initApp() {
+        loadScore();
+        initAudio();
+        resetQuizCycle(); 
+        render();
+    }
+
+    function generateSingleQuiz(correctAnswerData, isEngToKor) {
+        const distractors = [...VOCAB].filter(word => word.english !== correctAnswerData.english);
+        const shuffledDistractors = distractors.sort(() => 0.5 - Math.random()).slice(0, QUIZ_OPTIONS_COUNT - 1);
+        const finalOptionsData = [correctAnswerData, ...shuffledDistractors].sort(() => 0.5 - Math.random());
+
+        return {
+            type: isEngToKor ? 'eng-kor' : 'kor-eng',
+            question: isEngToKor ? correctAnswerData.english : correctAnswerData.korean,
+            answer: isEngToKor ? correctAnswerData.korean : correctAnswerData.english,
+            options: finalOptionsData.map(w => isEngToKor ? w.korean : w.english),
+            label: isEngToKor ? 'ENG → KOR' : 'KOR → ENG',
+            wordPair: correctAnswerData
+        };
+    }
+
+    function resetQuizCycle() {
+        const korToEngQuizzes = VOCAB.map(w => generateSingleQuiz(w, false));
+        const engToKorQuizzes = VOCAB.map(w => generateSingleQuiz(w, true));
+        quizCycle = [...korToEngQuizzes, ...engToKorQuizzes].sort(() => 0.5 - Math.random()); 
+        incorrectlyAnswered = [];
+        currentQuizIndex = -1;
+    }
+
+    function render() {
+        stopTimer(); 
+        updateScoreDisplay();
+        contentArea.innerHTML = '';
+        if (currentScreen === 'home') renderHomeScreen();
+        else if (currentScreen === 'quiz') { renderQuizScreen(); startTimer(); }
+        else if (currentScreen === 'review') renderReviewScreen();
+    }
+
+    function renderHomeScreen() {
+        const problemsCompleted = currentQuizIndex > -1 ? currentQuizIndex : 0; 
+        contentArea.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-center">
+                <div class="text-6xl mb-6">🔭</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-8 px-4">월식 및 과학 관련 단어 학습을 시작해볼까요?</h2>
+                <p class="text-xl font-bold text-primary mb-6">
+                    <span class="text-secondary">${problemsCompleted}</span> / ${quizCycle.length} 문제 진행
+                </p>
+                <button onclick="startQuiz()" class="btn-large bg-secondary text-white w-full max-w-xs mb-4 shadow-xl hover:bg-emerald-600">
+                    ${problemsCompleted === 0 ? '학습 시작!' : '계속하기'}
+                </button>
+                <button onclick="showResetConfirmation()" class="text-primary text-sm font-semibold mt-4">초기화</button>
+            </div>
+        `;
+    }
+
+    function renderQuizScreen() {
+        if (!currentQuiz) { startQuiz(); return; }
+        const quiz = currentQuiz;
+        let optionsHtml = quiz.options.map((opt, i) => `
+            <button onclick="checkAnswer('${opt.replace(/'/g, "\\'")}')" 
+                    class="btn-large ${i % 2 === 0 ? 'bg-accent' : 'bg-secondary'} text-white w-full shadow-lg text-left px-6">
+                ${opt}
+            </button>
+        `).join('');
+
+        contentArea.innerHTML = `
+            <div class="flex flex-col h-full">
+                <div class="w-full mb-2">
+                    <div id="timer-display" class="text-center text-sm text-gray-700 font-medium mb-1">남은 시간: ${timeLeft}초</div>
+                    <div class="w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div id="timer-bar" class="h-1.5 bg-incorrect"></div>
+                    </div>
+                </div>
+                <div class="text-center mb-3">
+                    <span class="inline-block px-3 py-1 bg-primary text-white text-xs font-semibold rounded-full">${quiz.label}</span>
+                    <p class="text-xs text-gray-500 mt-1">${currentQuizIndex + 1} / ${quizCycle.length}</p>
+                </div>
+                <div class="p-4 bg-white rounded-xl shadow-lg mb-3 text-center border-4 border-accent flex-shrink-0 min-h-[120px] flex items-center justify-center">
+                    <p class="question-text font-extrabold text-primary">${quiz.question}</p>
+                </div>
+                <div class="option-button-container">${optionsHtml}</div>
+                <button onclick="stopTimer(); currentScreen = 'home'; render();" class="mt-2 text-gray-500 text-sm">🏡 홈으로</button>
+            </div>
+        `;
+    }
+
+    function renderReviewScreen() {
+        let reviewHtml = incorrectlyAnswered.length === 0 ? `
+            <div class="text-center py-10">
+                <div class="text-6xl mb-4">🏆</div>
+                <h3 class="text-2xl font-bold text-secondary mb-4">완벽합니다! 모든 단어를 외웠어요!</h3>
+            </div>` : `
+            <h2 class="text-2xl font-bold text-primary mb-4 text-center">오답 노트 📝</h2>
+            <ul class="bg-gray-50 rounded-xl divide-y divide-gray-200">
+                ${incorrectlyAnswered.map(p => `
+                    <li class="flex justify-between py-2 px-3">
+                        <span class="font-semibold">${p.korean}</span>
+                        <span class="text-primary font-mono">${p.english}</span>
+                    </li>
+                `).join('')}
+            </ul>`;
+        
+        contentArea.innerHTML = `
+            <div class="flex flex-col h-full">
+                <div class="flex-grow overflow-y-auto">${reviewHtml}</div>
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <h3 class="text-lg font-bold text-center mb-4">최종 점수: <span class="text-secondary">${score}</span>점</h3>
+                    <button onclick="resetQuizCycle(); currentScreen = 'home'; render();" class="btn-large bg-primary text-white w-full">처음부터 다시 시작</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function advanceToNextQuiz() {
+        currentQuizIndex++;
+        if (currentQuizIndex < quizCycle.length) {
+            currentQuiz = quizCycle[currentQuizIndex];
+            currentScreen = 'quiz';
+            render();
+        } else {
+            currentScreen = 'review';
+            render();
+        }
+    }
+
+    function startQuiz() {
+        if (Tone.context.state !== 'running') Tone.start();
+        if (currentQuizIndex === -1) currentQuizIndex = 0;
+        currentQuiz = quizCycle[currentQuizIndex];
+        currentScreen = 'quiz';
+        render();
+    }
+    
+    function checkAnswer(selectedOption) {
+        if (!quizActive) return; 
+        stopTimer();
+        if (selectedOption === currentQuiz.answer) {
+            playCorrectSound();
+            score += 10;
+            saveScore();
+            advanceToNextQuiz();
+        } else {
+            playIncorrectSound();
+            recordIncorrectAnswer(currentQuiz.wordPair);
+            showFeedback(false);
+        }
+    }
+    
+    function showFeedback(isCorrect, isTimeOut = false) {
+        const pair = currentQuiz.wordPair;
+        feedbackCard.innerHTML = `
+            <div class="text-6xl mb-4">${isTimeOut ? '🚨' : '❌'}</div>
+            <h2 class="text-2xl font-bold mb-2 text-incorrect">${isTimeOut ? '시간 초과!' : '오답!'}</h2>
+            <p class="text-base text-gray-600 mb-5">정답: <strong>${pair.english}</strong><br><small>(${pair.korean})</small></p>
+            <button onclick="hideModalAndContinue()" class="btn-large bg-primary text-white w-full">다음 문제</button>
+        `;
+        feedbackModal.classList.remove('hidden', 'opacity-0');
+        feedbackModal.classList.add('flex', 'opacity-100');
+        setTimeout(() => { feedbackCard.classList.remove('opacity-0', 'scale-95'); feedbackCard.classList.add('opacity-100', 'scale-100'); }, 10);
+    }
+
+    function hideModalAndContinue(toHome = false) {
+        feedbackCard.classList.remove('opacity-100', 'scale-100');
+        setTimeout(() => {
+            feedbackModal.classList.add('hidden');
+            if (toHome) { currentScreen = 'home'; render(); }
+            else advanceToNextQuiz();
+        }, 300); 
+    }
+
+    function updateScoreDisplay() { scoreDisplay.textContent = `점수: ${score}점`; }
+    function showResetConfirmation() { score = 0; saveScore(); resetQuizCycle(); render(); }
+
+    window.onload = initApp;
+</script>
+</body>
+</html>
