@@ -373,13 +373,16 @@
     };
 
     /**
-     * Normalize strings for comparison (lowercase, remove specific punctuation, unify quotes)
+     * Normalize strings for comparison
+     * 1. Remove all types of single/double quotes, dots, and commas
+     * 2. Replace multiple spaces with one
+     * 3. Convert to lowercase
      */
     function normalize(str) {
         if (!str) return "";
         return str.toLowerCase()
-            .replace(/[.“”]/g, "") // remove dots and curly quotes
-            .replace(/[’']/g, "'") // unify curly/straight single quotes to straight '
+            .replace(/[’'‘’“”",.]/g, "") // 모든 종류의 따옴표, 점, 쉼표 삭제
+            .replace(/\s+/g, " ")       // 여러 칸 공백을 한 칸으로
             .trim();
     }
 
