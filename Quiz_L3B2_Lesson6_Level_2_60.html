@@ -175,7 +175,6 @@
         }
     }
 
-    // 1, 2단계: 쌍안경 달 관측 관련 단어/구문 데이터
     const dataL12 = [
         { eng: "one _______ of binoculars", kor: "쌍안경의 한 가지 장점", ans: "advantage" },
         { eng: "see a larger _______", kor: "더 넓은 영역을 보다", ans: "area" },
@@ -194,7 +193,6 @@
         { eng: "_______ the moon", kor: "달을 관측하다", ans: "view" }
     ];
 
-    // 3, 4단계: 문장 완성 데이터 (요청에 따라 교체)
     const dataL34 = [
         { eng: "The moon is (Earth’s closest neighbor) in the solar system.", kor: "달은 태양계에서 지구와 가장 가까운 이웃이다.", ans: "Earth’s closest neighbor" },
         { eng: "One advantage of binoculars is that people can (take them anywhere).", kor: "쌍안경의 한 가지 장점은 사람들이 그것들을 어디든 가지고 갈 수 있다는 것이다.", ans: "take them anywhere" },
@@ -342,7 +340,6 @@
         display.innerHTML = "";
         pool.innerHTML = "";
         
-        // Split answer into words, preserving spaces
         const words = answer.split(' ');
         const shuffled = [...words].sort(() => Math.random() - 0.5);
         
@@ -375,13 +372,24 @@
         checkAnswer(selectedWords.join(' '));
     };
 
+    /**
+     * Normalize strings for comparison (lowercase, remove specific punctuation, unify quotes)
+     */
+    function normalize(str) {
+        if (!str) return "";
+        return str.toLowerCase()
+            .replace(/[.“”]/g, "") // remove dots and curly quotes
+            .replace(/[’']/g, "'") // unify curly/straight single quotes to straight '
+            .trim();
+    }
+
     function checkAnswer(userAnswer) {
         clearInterval(timer);
         const currentData = (level <= 2) ? dataL12 : dataL34;
         const correct = currentData[currentIdx].ans;
         
-        const normalizedUser = userAnswer.toLowerCase().replace(/[.“”]/g, "").trim();
-        const normalizedCorrect = correct.toLowerCase().replace(/[.“”]/g, "").trim();
+        const normalizedUser = normalize(userAnswer);
+        const normalizedCorrect = normalize(correct);
         
         const isCorrect = normalizedUser === normalizedCorrect;
 
