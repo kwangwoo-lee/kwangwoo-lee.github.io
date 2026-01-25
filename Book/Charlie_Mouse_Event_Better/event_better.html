@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charlie & Mouse 전체 읽기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap');
+        
+        body {
+            font-family: 'Gaegu', cursive;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .book-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 챕터 카드 기본 숨김 */
+        .chapter-card {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-bottom: 60px;
+            border: 1px solid #e2e8f0;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* 활성화된 챕터만 표시 */
+        .chapter-card.active-chapter {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chapter-title {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #334155;
+            border-bottom: 2px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .content-body {
+            padding: 30px;
+            font-size: 1.8rem;
+            line-height: 1.7;
+        }
+
+        .sentence-row {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .sentence-row:hover {
+            background-color: #f1f5f9;
+        }
+
+        .translation {
+            display: none;
+            color: #64748b;
+            font-family: 'Nanum Pen Script', cursive;
+            font-size: 1.6rem;
+            margin-top: 5px;
+            padding-left: 15px;
+            border-left: 3px solid #cbd5e0;
+        }
+
+        .sentence-row.show-translation .translation {
+            display: block;
+        }
+
+        .word-tip {
+            color: #3b82f6;
+            font-weight: bold;
+            border-bottom: 2px dashed #93c5fd;
+            position: relative;
+        }
+
+        .word-tip .tooltip {
+            visibility: hidden;
+            width: 140px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 6px;
+            position: absolute;
+            z-index: 50;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9rem;
+            font-family: sans-serif;
+            pointer-events: none;
+        }
+
+        .word-tip:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .section-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(248, 250, 252, 0.95);
+            padding: 15px 0;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .nav-link {
+            padding: 8px 18px;
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: #f1f5f9;
+            border-color: #3b82f6;
+        }
+
+        .nav-link.active-nav {
+            background: #3b82f6;
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .book-info {
+            font-size: 1.2rem;
+            color: #1e40af;
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="book-container">
+    <header class="text-center py-8">
+        <h1 class="text-5xl font-extrabold text-blue-700 mb-2">Charlie & Mouse</h1>
+        <p class="text-xl text-slate-500">읽고 싶은 이야기를 선택하세요!</p>
+    </header>
+
+    <div class="section-nav" id="mainNav">
+        <button onclick="showChapter('pancakes', this)" class="nav-link active-nav">🥞 Pancakes</button>
+        <button onclick="showChapter('shopping', this)" class="nav-link">🛍️ Shopping</button>
+        <button onclick="showChapter('helping', this)" class="nav-link">🍰 Helping</button>
+        <button onclick="showChapter('surprise', this)" class="nav-link">🎁 Surprise</button>
+        <button onclick="showChapter('boring', this)" class="nav-link">🚗 Boring</button>
+    </div>
+
+    <div id="chapterContainer" class="mt-8">
+        <!-- Chapter: Pancakes -->
+        <div id="pancakes" class="chapter-card active-chapter">
+            <div class="book-info">Charlie & Mouse Even Better</div>
+            <div class="chapter-title">Pancakes</div>
+            <div class="content-body">
+                <div class="sentence-row" onclick="toggleT(this)">Mom was making pancakes. <div class="translation">엄마가 팬케이크를 만들고 계셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“These,” said Mouse, “are the best pancakes ever.” <div class="translation">“이건,” 마우스가 말했어요. “정말 최고의 팬케이크예요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Yes,” said Charlie. “But they could still be <span class="word-tip">better<span class="tooltip">더 좋은</span></span>.” <div class="translation">“응,” 찰리가 말했어요. “하지만 여전히 더 좋아질 수 있어.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What would make them better?” asked Mom. <div class="translation">“어떻게 하면 더 좋아질까?” 엄마가 물으셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“They could be smaller,” said Charlie. <div class="translation">“더 작아질 수 있어요.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Smaller?” said Mom. <div class="translation">“더 작게?” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“They could be <span class="word-tip">baby<span class="tooltip">아기</span></span> pancakes,” said Mouse. <div class="translation">“아기 팬케이크요.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Baby pancakes are special.” <div class="translation">“아기 팬케이크는 특별해요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“You don’t say,” said Mom. <div class="translation">“설마 그렇겠니(정말 그러네).” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Ta-dah!” said Mom. <div class="translation">“짠!” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Babies!” said Mouse. <div class="translation">“아기들이다!” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Babies are the best,” said Charlie. <div class="translation">“아기들이 최고야.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Mom is the best!” shouted Mouse. <div class="translation">“엄마가 최고야!” 마우스가 소리쳤어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I wonder,” said Charlie. <div class="translation">“궁금한 게 있어.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What do you <span class="word-tip">wonder<span class="tooltip">궁금해하다</span></span>?” asked Mom. <div class="translation">“뭐가 궁금하니?” 엄마가 물으셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I wonder if you could maybe make a <span class="word-tip">turtle<span class="tooltip">거북이</span></span>?” <div class="translation">“혹시 거북이를 만들어주실 수 있을까요?”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“A pancake turtle!” said Mouse. <div class="translation">“팬케이크 거북이요!” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I could try,” said Mom. “I have never made a pancake turtle.” <div class="translation">“노력해볼게. 한 번도 만들어본 적은 없지만.” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Ta-dah!” said Mom. <div class="translation">“짠!” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Turtles!” said Mouse. <div class="translation">“거북이들이다!” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Turtles are the best,” said Charlie. <div class="translation">“거북이가 최고야.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Mom is the best! shouted Mouse. <div class="translation">“엄마가 최고야!” 마우스가 소리쳤어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I wonder,” said Charlie. <div class="translation">“또 궁금한 게 있어.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I wonder if you could maybe make a <span class="word-tip">dragon<span class="tooltip">용</span></span>?” <div class="translation">“혹시 용을 만들어주실 수 있을까요?”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“A pancake dragon!” said Mouse. <div class="translation">“팬케이크 용!” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Hmmm,” said Mom. “I have never made a pancake dragon.” <div class="translation">“음, 한 번도 용을 만들어본 적은 없는데.” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Ta-dah!” said Mom. <div class="translation">“짠!” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What is THAT!” said Mouse. <div class="translation">“저게 뭐야!” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“A dragon,” said Mom. <div class="translation">“용이란다.” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“It does not look like a dragon,” said Charlie. <div class="translation">“용처럼 보이지 않아요.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“No, it does not look like a dragon,” said Mouse. <div class="translation">“네, 용처럼 안 보여요.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“It is a dragon,” said Mom. “It is a dragon that <span class="word-tip">annoyed<span class="tooltip">짜증나게 했다</span></span> its mother.” <div class="translation">“용 맞아. 엄마를 짜증나게 한 용이란다.” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“How did it annoy its mother?” asked Charlie. <div class="translation">“어떻게 엄마를 짜증나게 했는데요?” 찰리가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“It asked for too many pancakes,” said Mom. <div class="translation">“팬케이크를 너무 많이 만들어달라고 했거든.” 엄마가 말씀하셨어요.</div></div>
+            </div>
+        </div>
+
+        <!-- Chapter: Shopping -->
+        <div id="shopping" class="chapter-card">
+            <div class="book-info">Charlie & Mouse Even Better</div>
+            <div class="chapter-title">Shopping</div>
+            <div class="content-body">
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse were going shopping. <div class="translation">찰리와 마우스는 쇼핑을 하러 가는 중이었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse were going shopping with Dad. <div class="translation">찰리와 마우스는 아빠와 함께 쇼핑을 가고 있었죠.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">It was a <span class="word-tip">secret<span class="tooltip">비밀</span></span>! <div class="translation">그건 비밀이었어요!</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Shhhhhh!” said Charlie. <div class="translation">“쉿!” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What do you think Mom might like for her birthday?” asked Dad. <div class="translation">“엄마 생신 선물로 뭘 좋아하실 것 같니?” 아빠가 물으셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Flowers? Bubble bath?” <div class="translation">“꽃? 거품 목욕제?”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Yes,” said Mouse. “Mom would like those. Mom likes <span class="word-tip">smelly<span class="tooltip">향기로운</span></span> things. But they are not the things I want to buy.” <div class="translation">“네, 엄마는 그런 거 좋아하세요. 향기 나는 걸 좋아하시거든요. 하지만 제가 사고 싶은 건 그게 아니에요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What do you want to buy?” asked Charlie. <div class="translation">“뭘 사고 싶은데?” 찰리가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I am not sure yet,” said Mouse. “Will you help me think?” <div class="translation">“아직 잘 모르겠어. 생각하는 것 좀 도와줄래?”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Of course!” said Charlie. <div class="translation">“당연하지!” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse thought. “Hmmm." <div class="translation">찰리와 마우스는 생각했어요. “음..”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Maybe Mom would like a <span class="word-tip">jewel<span class="tooltip">보석</span></span>,” said Charlie. <div class="translation">“어쩌면 엄마는 보석을 좋아하실지도 몰라.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Mom likes things that <span class="word-tip">sparkle<span class="tooltip">반짝이다</span></span>.” <div class="translation">“엄마는 반짝이는 걸 좋아하시잖아.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“That is true,” said Mouse. “But we only have two dollars. I think a jewel will cost more than two dollars.” <div class="translation">“맞아. 하지만 우린 2달러밖에 없어. 보석은 2달러보다 비쌀 것 같아.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Oh,” said Charlie. “Then maybe Mom would like a special box to keep special secrets in.” <div class="translation">“오, 그럼 엄마는 특별한 비밀을 담아둘 특별한 상자를 좋아하실 거야.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“And we will <span class="word-tip">promise<span class="tooltip">약속하다</span></span> not to <span class="word-tip">peek<span class="tooltip">엿보다</span></span> in it, ever.” <div class="translation">“그리고 절대 엿보지 않겠다고 약속하는 거지.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Mom would like that,” said Mouse, “But I am not sure I can make that promise. I like to <span class="word-tip">snoop<span class="tooltip">훔쳐보다</span></span>.” <div class="translation">“엄마가 좋아하시겠다. 하지만 그 약속을 지킬 수 있을지 모르겠어. 난 훔쳐보는 걸 좋아하거든.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“That is a good point,” said Charlie. “I like to snoop, too.” <div class="translation">“좋은 지적이야. 나도 훔쳐보는 걸 좋아해.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Suddenly, Mouse stood up. “I know!” he said. “I know what Mom would like!” <div class="translation">갑자기 마우스가 일어났어요. “알았다! 엄마가 뭘 좋아하실지 알아!”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What?” asked Charlie. “<span class="word-tip">Tape<span class="tooltip">테이프</span></span>?” <div class="translation">“뭔데? 테이프?”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Yes, tape,” said Mouse. <div class="translation">“응, 테이프.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Does Mom like tape?” asked Dad. <div class="translation">“엄마가 테이프를 좋아하시니?” 아빠가 물으셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Everyone likes tape,” said Mouse. <div class="translation">“모두가 테이프를 좋아해요.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“That is true,” said Charlie. “Also, tape is a thing Mom can never find when she needs it.” <div class="translation">“맞아요. 게다가 테이프는 엄마가 필요할 때 절대 찾을 수 없는 물건이거든요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“That is also true,” said Charlie. “Tape is a very good idea. You are smart, Mouse.” <div class="translation">“그것도 맞네. 테이프는 정말 좋은 생각이야. 넌 똑똑해, 마우스.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I try,” said Mouse. <div class="translation">“노력 중이야.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Now you should wrap the present,” said Dad. <div class="translation">“이제 선물을 포장해야지.” 아빠가 말씀하셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I want to wrap the present,” said Mouse. “But I do not think I can.” <div class="translation">“제가 포장하고 싶어요. 하지만 못 할 것 같아요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Why not?” asked Dad. <div class="translation">“왜 안 되니?” 아빠가 물으셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I can’t find the tape,” said Mouse. <div class="translation">“테이프를 못 찾겠거든요.” 마우스가 말했어요.</div></div>
+            </div>
+        </div>
+
+        <!-- Chapter: Helping -->
+        <div id="helping" class="chapter-card">
+            <div class="book-info">Charlie & Mouse Even Better</div>
+            <div class="chapter-title">Helping</div>
+            <div class="content-body">
+                <div class="sentence-row" onclick="toggleT(this)">Dad was baking a cake. <div class="translation">아빠가 케이크를 굽고 계셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Can we help?” asked Charlie. <div class="translation">“우리가 도와드려도 돼요?” 찰리가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“No,” said Dad. “This is a <span class="word-tip">grown-up<span class="tooltip">어른</span></span> job." <div class="translation">“아니, 이건 어른들이 할 일이란다.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">"Why don’t you make Mom a card instead?” <div class="translation">“대신 엄마에게 드릴 카드를 만드는 게 어떠니?”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse made seven cards. <div class="translation">찰리와 마우스는 카드를 일곱 장이나 만들었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Dad was making special birthday chili. <div class="translation">아빠는 특별한 생일용 칠리 요리를 만들고 계셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Can we help?” asked Mouse. <div class="translation">“우리가 도와드려도 돼요?” 마우스가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“No,” said Dad. “This is a grown-up job.” <div class="translation">“아니, 이건 어른들이 할 일이야.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse picked all the flowers. <div class="translation">찰리와 마우스는 꽃을 전부 꺾었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Dad was washing dishes. <div class="translation">아빠는 설거지를 하고 계셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Do you want to help wash dishes?” asked Dad. <div class="translation">“설거지하는 거 도와줄래?” 아빠가 물으셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“No,” said Charlie. “That is a grown-up job.” <div class="translation">“아니요, 그건 어른들이 할 일이잖아요.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Yes,” said Mouse. “That is <span class="word-tip">definitely<span class="tooltip">확실히</span></span> a grown-up job. We will <span class="word-tip">decorate<span class="tooltip">장식하다</span></span> instead.” <div class="translation">“맞아요. 그건 확실히 어른들이 할 일이죠. 우린 대신 장식을 할게요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“That is a fine idea,” said Dad. <div class="translation">“좋은 생각이구나.” 아빠가 말씀하셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse went to their room. <div class="translation">찰리와 마우스는 방으로 갔어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse <span class="word-tip">gathered<span class="tooltip">모았다</span></span> supplies. <div class="translation">찰리와 마우스는 준비물을 모았어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse decorated. <div class="translation">찰리와 마우스는 장식을 했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“No, Mouse,” said Charlie, “the snake goes over here.” <div class="translation">“아니야 마우스, 뱀은 이쪽에 둬야 해.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Oops!” said Mouse. <div class="translation">“어이쿠!” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“We have to be <span class="word-tip">careful<span class="tooltip">조심스러운</span></span>,” said Charlie. <div class="translation">“우린 조심해야 해.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I am always careful,” said Mouse. “<span class="word-tip">Careful<span class="tooltip">조심조심</span></span> is my <span class="word-tip">watchword<span class="tooltip">좌우명</span></span>.” <div class="translation">“난 언제나 조심해. ‘조심’이 내 좌우명인걸.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Now we are finished,” said Charlie. <div class="translation">“이제 다 끝났다.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Yes,” said Mouse. “Now we are finished. But it could still be better.” <div class="translation">“응, 이제 끝났어. 하지만 여전히 더 좋아질 수 있을 것 같아.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What would make it better?” asked Charlie. <div class="translation">“뭐가 더 좋아지게 할까?” 찰리가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“If it was not so <span class="word-tip">smoky<span class="tooltip">연기가 자욱한</span></span>,” said Mouse. <div class="translation">“연기가 이렇게 자욱하지만 않다면 말이야.” 마우스가 말했어요.</div></div>
+            </div>
+        </div>
+
+        <!-- Chapter: Surprise -->
+        <div id="surprise" class="chapter-card">
+            <div class="book-info">Charlie & Mouse Even Better</div>
+            <div class="chapter-title">Surprise</div>
+            <div class="content-body">
+                <div class="sentence-row" onclick="toggleT(this)">The cake was <span class="word-tip">burnt<span class="tooltip">타버린</span></span>. The house was smoky. <div class="translation">케이크는 타버렸고 집안은 연기로 가득했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What will we do?” asked Mouse. <div class="translation">“우리 이제 어떡하지?” 마우스가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Let me think,” said Charlie. <div class="translation">“생각 좀 해보자.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Think fast!” said Dad. “Mom will be home soon!” <div class="translation">“빨리 생각하렴! 엄마가 곧 오실 거야!” 아빠가 말씀하셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie thought fast. “I have an idea!” said Charlie. <div class="translation">찰리는 빠르게 생각했어요. “좋은 생각이 났어요!”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“But Dad will have to help me turn on the stove.” <div class="translation">“하지만 아빠가 가스레인지 켜는 걸 도와주셔야 해요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What is the idea?” asked Dad. <div class="translation">“무슨 생각인데?” 아빠가 물으셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“No time to <span class="word-tip">explain<span class="tooltip">설명하다</span></span>!” said Charlie. “Come on!” <div class="translation">“설명할 시간 없어요! 어서요!” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“What about me?” asked Mouse. “What will I do?” <div class="translation">“나는? 나는 뭐 해?” 마우스가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“You will <span class="word-tip">distract<span class="tooltip">주의를 돌리다</span></span> Mom,” said Charlie. <div class="translation">“넌 엄마의 주의를 딴 데로 돌려야 해.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Mouse nodded. “I am up to the <span class="word-tip">task<span class="tooltip">임무/일</span></span>!” <div class="translation">마우스가 고개를 끄덕였어요. “그 임무 맡을 준비 됐어!”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Dad went away. Mouse got ready. <div class="translation">찰리와 아빠는 자리를 떴고, 마우스는 준비를 했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Mom came home. <div class="translation">엄마가 집에 오셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Why, hello, Mom,” said Mouse. <div class="translation">“와, 안녕하세요 엄마.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Why, hello, Mouse,” said Mom. <div class="translation">“어머, 안녕 마우스.” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“How was your day?” asked Mouse. <div class="translation">“오늘 하루 어떠셨어요?” 마우스가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“It was …nice,” said Mom. <div class="translation">“음... 좋았단다.” 엄마가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“It was …<span class="word-tip">eventful<span class="tooltip">다사다난한</span></span>,” said Mouse. <div class="translation">“음... 정말 많은 일이 있었어요.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Later,” said Mouse. “After you sit on the couch and hug me for four minutes.” <div class="translation">“나중에요. 엄마가 소파에 앉아서 저를 4분 동안 안아주신 다음에요.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I have my <span class="word-tip">reasons<span class="tooltip">이유들</span></span>,” said Mouse. <div class="translation">“제 나름대로 이유가 있어요.” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Mom sat down. Mom gave Mouse a hug. <div class="translation">엄마가 앉으셨고, 마우스를 안아주셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Until the door <span class="word-tip">swung<span class="tooltip">휙 열리다</span></span> open. <div class="translation">그때 문이 휙 열렸어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">And in came Charlie with a plate! <div class="translation">찰리가 접시를 들고 들어왔어요!</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Ta-dah!” said Charlie. <div class="translation">“짠!” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Wow!” said Mom. “What a <span class="word-tip">surprise<span class="tooltip">깜짝선물</span></span>!” <div class="translation">“와! 정말 깜짝 놀랐는걸!” 엄마가 말씀하셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Surprises are the best,” said Charlie. <div class="translation">“깜짝 선물이 최고야.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Mom is the best!” shouted Mouse. <div class="translation">“엄마가 최고야!” 마우스가 소리쳤어요.</div></div>
+            </div>
+        </div>
+
+        <!-- Chapter: Boring -->
+        <div id="boring" class="chapter-card">
+            <div class="book-info">Charlie & Mouse Outdoors</div>
+            <div class="chapter-title">Boring</div>
+            <div class="content-body">
+                <div class="sentence-row" onclick="toggleT(this)">Charlie and Mouse were in the car. <div class="translation">찰리와 마우스는 차 안에 타고 있었죠.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“This is <span class="word-tip">boring<span class="tooltip">지루한</span></span>,” said Charlie. <div class="translation">“심심해 죽겠어.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Why don’t you make up a story,” said Dad. <div class="translation">“이야기를 하나 만들어보는 게 어떠니?” 아빠가 말씀하셨어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I will try,” said Charlie. <div class="translation">“노력해볼게요.” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">The car went over a <span class="word-tip">great<span class="tooltip">거대한</span></span> green mountain. <div class="translation">차는 거대한 초록색 산을 넘어갔어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Once upon a time,” said Charlie. <div class="translation">“옛날 옛적에...” 찰리가 시작했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Then what happened?” asked Mouse. <div class="translation">“그다음엔 어떻게 됐어?” 마우스가 물었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Charlie <span class="word-tip">sighed<span class="tooltip">한숨 쉬다</span></span>. “I do not know. It is hard to make up a story.” <div class="translation">찰리가 한숨을 쉬었어요. “모르겠다니까. 이야기를 지어내는 건 어려워.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">The car went past a field. There was a <span class="word-tip">hawk<span class="tooltip">매</span></span> over the field. <div class="translation">들판 위에는 매 한 마리가 있었어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">The hawk had something <span class="word-tip">wiggling<span class="tooltip">꿈틀거리는</span></span> in its mouth. <div class="translation">그 매의 부리에는 뭔가가 꿈틀거리고 있었죠.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“The wiggling thing <span class="word-tip">turned out<span class="tooltip">밝혀지다</span></span> to be a …dragon!” said Charlie. <div class="translation">“알고 보니 그 꿈틀거리던 건 바로... 용이었어!” 찰리가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“The dragon and the hawk had a <span class="word-tip">battle<span class="tooltip">전투</span></span> in the sky!” <div class="translation">“용과 매는 하늘에서 전투를 벌였어!”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“The dragon spit fire, and they both <span class="word-tip">flapped<span class="tooltip">퍼덕이다</span></span> their wings so hard that it rained!” <div class="translation">“용이 불을 뿜고 날개를 너무 세게 퍼덕여서 비가 내렸어!”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">Suddenly, it began to rain. <div class="translation">갑자기 정말 비가 내리기 시작했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Quick, Charlie!” said Mouse. “Tell us a different story.” <div class="translation">“빨리 찰리! 다른 이야기를 해줘!” 마우스가 말했어요.</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“Dad stopped the car. And we had <span class="word-tip">French fries<span class="tooltip">감자튀김</span></span> until the rain stopped.” <div class="translation">“아빠가 차를 멈추셨어. 그리고 우린 비가 그칠 때까지 감자튀김을 먹었단다.”</div></div>
+                <div class="sentence-row" onclick="toggleT(this)">“I like this story,” said Mouse. <div class="translation">“난 이 이야기가 좋아.” 마우스가 말했어요.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-slate-400 py-10 text-xl">
+        챕터를 선택하여 이야기를 하나씩 마스터해 보세요! 🌟
+    </footer>
+</div>
+
+<script>
+    // 챕터 전환 기능
+    function showChapter(chapterId, navElement) {
+        // 모든 챕터 숨기기
+        const chapters = document.querySelectorAll('.chapter-card');
+        chapters.forEach(ch => ch.classList.remove('active-chapter'));
+
+        // 선택한 챕터 보이기
+        const target = document.getElementById(chapterId);
+        if (target) {
+            target.classList.add('active-chapter');
+        }
+
+        // 네비게이션 버튼 스타일 변경
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => link.classList.remove('active-nav'));
+        navElement.classList.add('active-nav');
+
+        // 스크롤을 상단으로 이동
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 해석 토글 기능
+    function toggleT(el) {
+        el.classList.toggle('show-translation');
+    }
+
+    // 터치 디바이스 툴팁 호환성
+    document.querySelectorAll('.word-tip').forEach(tip => {
+        tip.addEventListener('touchstart', function(e) {
+            e.stopPropagation();
+        });
+    });
+</script>
+
+</body>
+</html>
