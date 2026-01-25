@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Reader for Kids</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Quicksand:wght@500;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', 'Noto Sans KR', sans-serif;
+            background-color: #F4F7FE;
+            color: #2D3748;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 잠금 화면 스타일 */
+        #lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #5E56E7;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+
+        .pin-input-container {
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 320px;
+        }
+
+        .pin-input {
+            width: 100%;
+            border: 2px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 10px;
+            color: #5E56E7;
+            margin: 20px 0;
+            outline: none;
+        }
+
+        .pin-input:focus {
+            border-color: #5E56E7;
+        }
+
+        .btn-unlock {
+            background-color: #10B981;
+            color: white;
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 12px;
+            width: 100%;
+            border: none;
+            box-shadow: 0 4px 0 #059669;
+            cursor: pointer;
+        }
+
+        .btn-unlock:active {
+            box-shadow: none;
+            transform: translateY(2px);
+        }
+
+        /* 본문 컨테이너 (처음엔 숨김) */
+        .mobile-container {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            min-height: 100vh;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #5E56E7;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .score-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .sentence-row {
+            margin: 15px;
+            padding: 18px;
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+
+        .sentence-row:active {
+            transform: scale(0.98);
+            background: #F8FAFC;
+        }
+
+        .word {
+            cursor: pointer;
+            padding: 1px 4px;
+            margin: 0 1px;
+            border-bottom: 2px solid #5E56E7;
+            color: #1A365D;
+            font-weight: 700;
+        }
+
+        .btn-translate {
+            background-color: #10B981;
+            color: white;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            border: none;
+            box-shadow: 0 4px 0 #059669;
+        }
+
+        .translation {
+            display: none;
+            color: #4A5568;
+            font-size: 1rem;
+            margin-top: 12px;
+            padding: 12px;
+            background: #F1F5F9;
+            border-radius: 12px;
+            border-left: 4px solid #5E56E7;
+        }
+
+        .translation.active {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #dictionary-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+            text-align: center;
+            width: 80%;
+            max-width: 320px;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+        }
+
+        .progress-container {
+            height: 6px;
+            background: #E2E8F0;
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #FFD600;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 잠금 화면 -->
+    <div id="lock-screen">
+        <div class="pin-input-container">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Password Required</h2>
+            <p class="text-sm text-slate-500 mb-4">PIN 번호 4자리를 입력하세요.</p>
+            <input type="password" id="pin-input" class="pin-input" maxlength="4" placeholder="****" inputmode="numeric">
+            <button onclick="checkPin()" class="btn-unlock">학습 시작하기</button>
+            <p id="error-msg" class="text-red-500 text-xs mt-3 invisible">PIN 번호가 틀렸습니다.</p>
+        </div>
+    </div>
+
+    <!-- 본문 내용 -->
+    <div class="mobile-container" id="main-content">
+        <header>
+            <div class="text-xs font-bold tracking-widest opacity-80 uppercase">Reading Master 🚀</div>
+            <h1 class="text-xl font-bold mt-1">Dexter's Magnet</h1>
+            <div class="score-badge" id="progress-text">0 / 17 문장 읽음</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </header>
+
+        <main id="story-container" class="pb-10 pt-4">
+            <!-- 문장 삽입 영역 -->
+        </main>
+        
+        <footer class="text-center p-6 text-slate-400 text-xs">
+            단어를 누르면 뜻이 보여요!<br>
+            문장을 누르면 번역이 나와요!
+        </footer>
+    </div>
+
+    <div id="overlay" class="overlay"></div>
+    <div id="dictionary-modal">
+        <h3 id="dict-word" class="text-2xl font-bold text-indigo-600 mb-2"></h3>
+        <p id="dict-meaning" class="text-xl text-slate-700"></p>
+        <button onclick="closeDict()" class="mt-6 bg-indigo-50 px-6 py-2 rounded-full text-sm font-bold text-indigo-600 border border-indigo-100">확인</button>
+    </div>
+
+    <script>
+        const PIN_CODE = "3154";
+
+        function checkPin() {
+            const input = document.getElementById('pin-input').value;
+            const errorMsg = document.getElementById('error-msg');
+            
+            if (input === PIN_CODE) {
+                document.getElementById('lock-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('lock-screen').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'flex';
+                }, 500);
+            } else {
+                errorMsg.classList.remove('invisible');
+                document.getElementById('pin-input').value = "";
+                document.getElementById('pin-input').focus();
+            }
+        }
+
+        // 엔터키 지원
+        document.getElementById('pin-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPin();
+        });
+
+        const storyData = [
+            { en: "“Dexter, I need another screw like this,” Dad called from the kitchen. “And take Lana.”", ko: "“덱스터, 이런 나사 하나가 더 필요하구나,” 아빠가 주방에서 부르셨어요. “라나도 데려가렴.”" },
+            { en: "Dexter took the screw from Dad and led his little sister outside to the toolshed.", ko: "덱스터는 아빠에게 나사를 받아 어린 여동생을 데리고 바깥 공구 창고로 향했어요." },
+            { en: "Inside, Dexter checked a drawer marked “Screws,” where he found a magnet with several screws stuck to it.", ko: "그 안에서 덱스터는 ‘나사’라고 적힌 서랍을 확인했고, 그곳에서 여러 개의 나사가 붙어 있는 자석을 발견했어요." },
+            { en: "Dexter reached for the screw Dad had given him but only found a hole in his pocket.", ko: "덱스터는 아빠가 주신 나사를 찾으려고 손을 뻗었지만, 주머니에 구멍이 난 것을 발견했을 뿐이었죠." },
+            { en: "“What’s that?” Lana asked, wide-eyed.", ko: "“저게 뭐야?” 라나가 눈을 크게 뜨고 물었어요." },
+            { en: "“It’s a magnet, silly,” Dexter laughed. Then, he realized she had probably never seen one before.", ko: "“자석이야, 바보야,” 덱스터가 웃으며 말했어요. 그러다 그는 라나가 아마 이전에 자석을 본 적이 없을 거라는 걸 깨달았죠." },
+            { en: "“How does it work?” Lana asked.", ko: "“이건 어떻게 작동하는 거야?” 라나가 물었어요." },
+            { en: "Dexter explained that magnets attract some materials, like iron, but not others.", ko: "덱스터는 자석이 철 같은 어떤 물질은 끌어당기지만, 다른 것들은 그렇지 않다는 것을 설명해 주었어요." },
+            { en: "He showed her that a rubber band wouldn’t stick to the magnet.", ko: "그는 고무줄은 자석에 붙지 않는다는 것을 보여주었죠." },
+            { en: "Lana joyfully opened more drawers, sweeping the magnet above them to see what stuck.", ko: "라나는 즐겁게 더 많은 서랍을 열어보고, 무엇이 붙는지 보려고 그 위로 자석을 훑으며 지나갔어요." },
+            { en: "“What’s taking so long?” Dad called from the house.", ko: "“왜 이렇게 오래 걸리니?” 아빠가 집에서 부르셨어요." },
+            { en: "Dexter picked up the screws with the magnet and went inside.", ko: "덱스터는 자석으로 나사들을 집어 들고 안으로 들어갔어요." },
+            { en: "Dad frowned at the screws.", ko: "아빠는 나사들을 보며 눈살을 찌푸리셨어요." },
+            { en: "“There’s only one that’s the right size,” Dad said. “Where’s the one I gave you?”", ko: "“맞는 크기는 하나뿐이구나,” 아빠가 말씀하셨어요. “내가 준 건 어디 있니?”" },
+            { en: "While Dexter explained, Lana took the magnet and retraced their steps.", ko: "덱스터가 설명하는 동안, 라나는 자석을 들고 그들이 왔던 길을 다시 따라갔어요." },
+            { en: "Outside, she crawled toward the shed, sweeping the magnet from side to side.", ko: "밖에서 그녀는 창고를 향해 기어가며 자석을 양옆으로 훑었어요." },
+            { en: "“I found it!” she said, holding up the magnet with the missing screw.", ko: "“찾았다!” 그녀는 잃어버렸던 나사가 붙은 자석을 들어 올리며 말했어요." }
+        ];
+
+        const dictionary = {
+            "screw": "나사", "toolshed": "공구 창고", "magnet": "자석", "drawer": "서랍",
+            "stuck": "붙어 있는", "wide-eyed": "눈을 크게 뜬", "realized": "깨달았다",
+            "attract": "끌어당기다", "materials": "물질, 재료", "iron": "철",
+            "sweeping": "훑다", "frowned": "찌푸리다", "retraced": "되짚어가다",
+            "crawled": "기어갔다", "missing": "잃어버린"
+        };
+
+        const container = document.getElementById('story-container');
+        const modal = document.getElementById('dictionary-modal');
+        const overlay = document.getElementById('overlay');
+        const dictWord = document.getElementById('dict-word');
+        const dictMeaning = document.getElementById('dict-meaning');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        let readCount = new Set();
+
+        storyData.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'sentence-row';
+            
+            const transBtn = document.createElement('button');
+            transBtn.className = 'btn-translate';
+            transBtn.textContent = '번역 확인';
+            
+            const enPara = document.createElement('p');
+            enPara.className = 'text-xl md:text-2xl font-bold leading-relaxed text-slate-800 mb-1';
+            
+            const words = item.en.split(' ');
+            words.forEach(wordStr => {
+                const cleanWord = wordStr.toLowerCase().replace(/[.,“”!?]/g, '');
+                const span = document.createElement('span');
+                span.className = 'word';
+                span.textContent = wordStr + ' ';
+                
+                if (dictionary[cleanWord]) {
+                    span.onclick = (e) => {
+                        e.stopPropagation();
+                        showDict(cleanWord, dictionary[cleanWord]);
+                    };
+                }
+                enPara.appendChild(span);
+            });
+
+            const koPara = document.createElement('p');
+            koPara.className = 'translation';
+            koPara.textContent = item.ko;
+
+            row.onclick = () => {
+                const isActive = koPara.classList.toggle('active');
+                if (isActive) {
+                    readCount.add(index);
+                    updateProgress();
+                }
+            };
+
+            row.appendChild(transBtn);
+            row.appendChild(enPara);
+            row.appendChild(koPara);
+            container.appendChild(row);
+        });
+
+        function updateProgress() {
+            const percent = (readCount.size / storyData.length) * 100;
+            progressBar.style.width = percent + '%';
+            progressText.textContent = `${readCount.size} / ${storyData.length} 문장 읽음`;
+        }
+
+        function showDict(word, meaning) {
+            dictWord.textContent = word.toUpperCase();
+            dictMeaning.textContent = meaning;
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closeDict() {
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        overlay.onclick = closeDict;
+    </script>
+</body>
+</html>
