@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Reader for Kids</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Quicksand:wght@500;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', 'Noto Sans KR', sans-serif;
+            background-color: #F4F7FE;
+            color: #2D3748;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 잠금 화면 스타일 */
+        #lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #5E56E7;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+
+        .pin-input-container {
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 320px;
+        }
+
+        .pin-input {
+            width: 100%;
+            border: 2px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 10px;
+            color: #5E56E7;
+            margin: 20px 0;
+            outline: none;
+        }
+
+        .pin-input:focus {
+            border-color: #5E56E7;
+        }
+
+        .btn-unlock {
+            background-color: #10B981;
+            color: white;
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 12px;
+            width: 100%;
+            border: none;
+            box-shadow: 0 4px 0 #059669;
+            cursor: pointer;
+        }
+
+        .btn-unlock:active {
+            box-shadow: none;
+            transform: translateY(2px);
+        }
+
+        /* 본문 컨테이너 (처음엔 숨김) */
+        .mobile-container {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            min-height: 100vh;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #5E56E7;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .score-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .sentence-row {
+            margin: 15px;
+            padding: 18px;
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+
+        .sentence-row:active {
+            transform: scale(0.98);
+            background: #F8FAFC;
+        }
+
+        .word {
+            cursor: pointer;
+            padding: 1px 4px;
+            margin: 0 1px;
+            border-bottom: 2px solid #5E56E7;
+            color: #1A365D;
+            font-weight: 700;
+        }
+
+        .btn-translate {
+            background-color: #10B981;
+            color: white;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            border: none;
+            box-shadow: 0 4px 0 #059669;
+        }
+
+        .translation {
+            display: none;
+            color: #4A5568;
+            font-size: 1rem;
+            margin-top: 12px;
+            padding: 12px;
+            background: #F1F5F9;
+            border-radius: 12px;
+            border-left: 4px solid #5E56E7;
+        }
+
+        .translation.active {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #dictionary-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+            text-align: center;
+            width: 80%;
+            max-width: 320px;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+        }
+
+        .progress-container {
+            height: 6px;
+            background: #E2E8F0;
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #FFD600;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 잠금 화면 -->
+    <div id="lock-screen">
+        <div class="pin-input-container">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Password Required</h2>
+            <p class="text-sm text-slate-500 mb-4">PIN 번호 4자리를 입력하세요.</p>
+            <input type="password" id="pin-input" class="pin-input" maxlength="4" placeholder="****" inputmode="numeric">
+            <button onclick="checkPin()" class="btn-unlock">학습 시작하기</button>
+            <p id="error-msg" class="text-red-500 text-xs mt-3 invisible">PIN 번호가 틀렸습니다.</p>
+        </div>
+    </div>
+
+    <!-- 본문 내용 -->
+    <div class="mobile-container" id="main-content">
+        <header>
+            <div class="text-xs font-bold tracking-widest opacity-80 uppercase">Reading Master 🚀</div>
+            <h1 class="text-xl font-bold mt-1">A Healthy Relationship</h1>
+            <div class="score-badge" id="progress-text">0 / 18 문장 읽음</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </header>
+
+        <main id="story-container" class="pb-10 pt-4">
+            <!-- 문장 삽입 영역 -->
+        </main>
+        
+        <footer class="text-center p-6 text-slate-400 text-xs">
+            단어를 누르면 뜻이 보여요!<br>
+            문장을 누르면 번역이 나와요!
+        </footer>
+    </div>
+
+    <div id="overlay" class="overlay"></div>
+    <div id="dictionary-modal">
+        <h3 id="dict-word" class="text-2xl font-bold text-indigo-600 mb-2"></h3>
+        <p id="dict-meaning" class="text-xl text-slate-700"></p>
+        <button onclick="closeDict()" class="mt-6 bg-indigo-50 px-6 py-2 rounded-full text-sm font-bold text-indigo-600 border border-indigo-100">확인</button>
+    </div>
+
+    <script>
+        const PIN_CODE = "3154";
+
+        function checkPin() {
+            const input = document.getElementById('pin-input').value;
+            const errorMsg = document.getElementById('error-msg');
+            
+            if (input === PIN_CODE) {
+                document.getElementById('lock-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('lock-screen').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'flex';
+                }, 500);
+            } else {
+                errorMsg.classList.remove('invisible');
+                document.getElementById('pin-input').value = "";
+                document.getElementById('pin-input').focus();
+            }
+        }
+
+        // 엔터키 지원
+        document.getElementById('pin-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPin();
+        });
+
+        const storyData = [
+            { en: "A Healthy Relationship", ko: "건강한 관계" },
+            { en: "Why do we have friends?", ko: "왜 우리는 친구를 사귈까요?" },
+            { en: "They are nice to have a conversation with.", ko: "친구는 함께 대화를 나눌 수 있는 좋은 존재입니다." },
+            { en: "They certainly make good company when you want to go to a movie theater or go shopping.", ko: "영화관에 가거나 쇼핑을 하고 싶을 때 그들은 확실히 좋은 동반자가 되어 줍니다." },
+            { en: "Many of us have friends simply because they are fun.", ko: "우리 중 많은 사람들은 단순히 친구가 재미있기 때문에 친구를 사귕니다." },
+            { en: "But did you ever consider that friends might actually be good for your health?", ko: "하지만 친구가 실제로 우리의 건강에 좋을지도 모른다고 생각해 본 적이 있나요?" },
+            { en: "One study proved that they are.", ko: "한 연구는 그것이 사실임을 증명했습니다." },
+            { en: "Australian scientists surveyed 1,500 individuals over a ten-year period.", ko: "호주의 과학자들은 10년에 걸쳐 1,500명을 대상으로 설문 조사를 했습니다." },
+            { en: "They asked them how many friends they had and how often they met them.", ko: "그들은 친구가 몇 명인지, 그리고 얼마나 자주 만나는지를 물었습니다." },
+            { en: "After observing them for ten years, the scientists found that the people who had more friends and met them more often actually lived longer.", ko: "10년 동안 그들을 관찰한 후, 과학자들은 친구가 더 많고 자주 만나는 사람들이 실제로 더 오래 산다는 사실을 발견했습니다." },
+            { en: "In fact, the people who had the most friends lived 22 percent longer than those who had the fewest friends.", ko: "사실, 가장 많은 친구를 가진 사람들은 친구가 가장 적은 사람들보다 22% 더 오래 살았습니다." },
+            { en: "How do friends improve our health?", ko: "그렇다면 친구는 어떻게 우리의 건강을 증진시킬까요?" },
+            { en: "The Australian scientists said there are probably two main ways.", ko: "호주의 과학자들은 아마도 두 가지 주요 방법이 있다고 말했습니다." },
+            { en: "First of all, friends help us take better care of our bodies.", ko: "첫째, 친구는 우리가 우리 몸을 더 잘 돌보도록 도와줍니다." },
+            { en: "We usually get more exercise when we spend time with friends.", ko: "우리는 친구들과 시간을 보낼 때 보통 더 많은 운동을 하게 됩니다." },
+            { en: "Also, even if we are just a little sick, a friend might pressure us to visit a doctor.", ko: "또한 우리가 조금이라도 아프면, 친구는 우리가 의사를 방문하도록 다그칠 수도 있습니다." },
+            { en: "Secondly, friends improve our mental health.", ko: "둘째, 친구는 우리의 정신적인 건강을 향상시킵니다." },
+            { en: "They can help us get through difficult times in our lives.", ko: "친구는 우리가 인생에서 어려운 시기를 헤쳐 나가도록 도와줄 수 있습니다." },
+            { en: "Also, when we are feeling down or lonely, our friends can help cheer us up.", ko: "또한 우리가 우울하거나 외로움을 느낄 때, 친구는 우리를 기운 나게 해 줄 수 있습니다." },
+            { en: "In the long run, all of the little things friends do for us add up.", ko: "결국, 친구들이 우리를 위해 해 주는 모든 작은 일들은 하나하나 모여 큰 영향을 줍니다." },
+            { en: "According to the study, they also add years to our lives.", ko: "그 연구에 따르면, 그것들은 우리의 수명에도 몇 년을 더해 줍니다." },
+            { en: "So, next time you see a close friend, be sure to thank him or her for making you a healthier person.", ko: "그러니 다음에 가까운 친구를 보게 되면, 당신을 더 건강한 사람으로 만들어 준 것에 대해 반드시 고마움을 표현하세요." }
+        ];
+
+        const dictionary = {
+            "relationship": "관계",
+            "conversation": "대화",
+            "certainly": "확실히",
+            "company": "동반자, 함께 있음",
+            "consider": "생각하다, 고려하다",
+            "proved": "증명했다",
+            "surveyed": "설문 조사했다",
+            "individuals": "개인들",
+            "observing": "관찰하는",
+            "percent": "퍼센트(%)",
+            "fewest": "가장 적은",
+            "improve": "증진시키다",
+            "pressure": "다그치다, 압박하다",
+            "mental": "정신적인",
+            "lonely": "외로운",
+            "cheer": "기운을 북돋우다",
+            "healthier": "더 건강한"
+        };
+
+        const container = document.getElementById('story-container');
+        const modal = document.getElementById('dictionary-modal');
+        const overlay = document.getElementById('overlay');
+        const dictWord = document.getElementById('dict-word');
+        const dictMeaning = document.getElementById('dict-meaning');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        let readCount = new Set();
+
+        storyData.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'sentence-row';
+            
+            const transBtn = document.createElement('button');
+            transBtn.className = 'btn-translate';
+            transBtn.textContent = '번역 확인';
+            
+            const enPara = document.createElement('p');
+            enPara.className = 'text-xl md:text-2xl font-bold leading-relaxed text-slate-800 mb-1';
+            
+            const words = item.en.split(' ');
+            words.forEach(wordStr => {
+                const cleanWord = wordStr.toLowerCase().replace(/[.,“”!?]/g, '');
+                const span = document.createElement('span');
+                span.className = 'word';
+                span.textContent = wordStr + ' ';
+                
+                if (dictionary[cleanWord]) {
+                    span.onclick = (e) => {
+                        e.stopPropagation();
+                        showDict(cleanWord, dictionary[cleanWord]);
+                    };
+                }
+                enPara.appendChild(span);
+            });
+
+            const koPara = document.createElement('p');
+            koPara.className = 'translation';
+            koPara.textContent = item.ko;
+
+            row.onclick = () => {
+                const isActive = koPara.classList.toggle('active');
+                if (isActive) {
+                    readCount.add(index);
+                    updateProgress();
+                }
+            };
+
+            row.appendChild(transBtn);
+            row.appendChild(enPara);
+            row.appendChild(koPara);
+            container.appendChild(row);
+        });
+
+        function updateProgress() {
+            const percent = (readCount.size / storyData.length) * 100;
+            progressBar.style.width = percent + '%';
+            progressText.textContent = `${readCount.size} / ${storyData.length} 문장 읽음`;
+        }
+
+        function showDict(word, meaning) {
+            dictWord.textContent = word.toUpperCase();
+            dictMeaning.textContent = meaning;
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closeDict() {
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        overlay.onclick = closeDict;
+    </script>
+</body>
+</html>
