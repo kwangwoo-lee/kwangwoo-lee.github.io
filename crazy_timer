@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomb Defusal Timer</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #ff3e3e;
+            --secondary-color: #ff9900;
+            --panel-bg: #1a1a1a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .container {
+            text-align: center;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border: 4px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .timer-display {
+            font-size: 5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            text-shadow: 0 0 20px var(--text-color);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            margin-top: 1.5rem;
+        }
+
+        button {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: #444;
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        #startBtn { background: #2e7d32; }
+        #pauseBtn { background: #c62828; }
+        #resetBtn { background: #455a64; }
+
+        .status-bar {
+            width: 100%;
+            height: 10px;
+            background: #222;
+            margin-top: 20px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--text-color);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* Explosion Effect */
+        #explosion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: none;
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .boom-text {
+            color: black;
+            font-size: 10rem;
+            font-weight: 900;
+            animation: shake 0.1s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .alarm-indicator {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="mainContainer">
+        <h1>Critical Objective Timer</h1>
+        <div class="timer-display" id="display">08:46.69</div>
+        
+        <div class="status-bar">
+            <div class="progress" id="progressBar"></div>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn">Pause</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="alarm-indicator">
+            Alarms at: 10:00, 15:00, 20:00, 25:00
+        </div>
+    </div>
+
+    <div id="explosion-overlay">
+        <div class="boom-text">BOOM!</div>
+        <p style="color: black; font-weight: bold;">OBJECTIVE FAILED</p>
+        <button onclick="resetTimer()" style="background: black; margin-top: 20px;">Retry</button>
+    </div>
+
+    <script>
+        // 초기 설정: 8분 46초 69 (밀리초 단위 계산)
+        const START_MS = (8 * 60 * 1000) + (46 * 1000) + 690;
+        const TARGET_MS = 25 * 60 * 1000;
+        
+        let currentTime = START_MS;
+        let isRunning = false;
+        let timerInterval;
+        let lastTimestamp;
+
+        const display = document.getElementById('display');
+        const progressBar = document.getElementById('progressBar');
+        const explosionOverlay = document.getElementById('explosion-overlay');
+        const mainContainer = document.getElementById('mainContainer');
+
+        // 알람 체크 포인트 (분 단위 -> 밀리초)
+        const alarms = [10, 15, 20, 25].map(min => min * 60 * 1000);
+        let triggeredAlarms = new Set();
+
+        // 오디오 컨텍스트 설정 (사용자 상호작용 후 활성화 필요)
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playAlarmSound(frequency = 880, duration = 0.5) {
+            if (!audioCtx) return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        function formatTime(ms) {
+            if (ms < 0) ms = 0;
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const centiseconds = Math.floor((ms % 1000) / 10);
+
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateProgress() {
+            const range = TARGET_MS - START_MS;
+            const currentOffset = currentTime - START_MS;
+            const percentage = Math.min((currentOffset / range) * 100, 100);
+            progressBar.style.width = percentage + '%';
+            
+            if (percentage > 80) {
+                progressBar.style.background = '#ff0000';
+            } else if (percentage > 50) {
+                progressBar.style.background = '#ff9900';
+            }
+        }
+
+        function checkAlarms() {
+            alarms.forEach(alarmTime => {
+                if (currentTime >= alarmTime && !triggeredAlarms.has(alarmTime)) {
+                    triggeredAlarms.add(alarmTime);
+                    if (alarmTime === TARGET_MS) {
+                        explode();
+                    } else {
+                        playAlarmSound(1200, 0.3); // 짧은 알람
+                    }
+                }
+            });
+        }
+
+        function explode() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            playAlarmSound(100, 1.0); // 저음 폭발음 시뮬레이션
+            
+            // 화면 흔들림 효과
+            mainContainer.style.animation = 'shake 0.1s infinite';
+            
+            setTimeout(() => {
+                explosionOverlay.style.display = 'flex';
+                mainContainer.style.animation = 'none';
+            }, 500);
+        }
+
+        function step(timestamp) {
+            if (!isRunning) return;
+
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const deltaTime = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+
+            currentTime += deltaTime;
+
+            if (currentTime >= TARGET_MS) {
+                currentTime = TARGET_MS;
+                display.innerText = formatTime(currentTime);
+                updateProgress();
+                checkAlarms();
+                return;
+            }
+
+            display.innerText = formatTime(currentTime);
+            updateProgress();
+            checkAlarms();
+            
+            requestAnimationFrame(step);
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            initAudio();
+            isRunning = true;
+            lastTimestamp = null;
+            requestAnimationFrame(step);
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+        }
+
+        function resetTimer() {
+            isRunning = false;
+            currentTime = START_MS;
+            triggeredAlarms.clear();
+            display.innerText = formatTime(currentTime);
+            updateProgress();
+            explosionOverlay.style.display = 'none';
+            mainContainer.style.animation = 'none';
+            progressBar.style.background = 'var(--text-color)';
+        }
+
+        document.getElementById('startBtn').addEventListener('click', startTimer);
+        document.getElementById('pauseBtn').addEventListener('click', pauseTimer);
+        document.getElementById('resetBtn').addEventListener('click', resetTimer);
+
+        // 초기 화면 설정
+        display.innerText = formatTime(START_MS);
+    </script>
+</body>
+</html>
